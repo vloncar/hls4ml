@@ -114,17 +114,6 @@ def write_project_cpp(model):
         #Add input/output type
         elif '//hls-fpga-machine-learning insert IO' in line:
             newline = line
-            all_inputs = [i.name for i in model_inputs]
-            all_outputs = [o.name for o in model_outputs]
-            if model.get_config_value("IOType") == "io_parallel":
-                for i in model_inputs: newline += indent + '#pragma HLS ARRAY_RESHAPE variable={} complete dim=0 \n'.format(i.name)
-                for o in model_outputs: newline += indent + '#pragma HLS ARRAY_RESHAPE variable={} complete dim=0 \n'.format(o.name)
-                newline += indent + '#pragma HLS INTERFACE ap_vld port={},{} \n'.format(','.join(all_inputs), ','.join(all_outputs))
-                newline += indent + '#pragma HLS PIPELINE \n'
-            if model.get_config_value("IOType") == "io_serial":
-                newline += indent + '#pragma HLS INTERFACE axis port={},{} \n'.format(','.join(all_inputs), ','.join(all_outputs))
-                newline += indent + '#pragma HLS DATAFLOW \n'
-
             inval_str = '\n    '.join(['const_size_in_{} = {};'.format(i, inp.size_cpp()) for i, inp in enumerate(model_inputs, 1)])
             outval_str = '\n    '.join(['const_size_out_{} = {};'.format(i, out.size_cpp()) for i, out in enumerate(model_outputs, 1)])
             newline += '\n' + indent + inval_str
@@ -139,8 +128,8 @@ def write_project_cpp(model):
                 for var in vars:
                     if var not in inputs and var not in outputs:
                         newline += '    ' + var.definition_cpp() + ';\n'
-                        if var.pragma:
-                            newline += '    ' + var.pragma + '\n'
+                        #if var.pragma:
+                        #    newline += '    ' + var.pragma + '\n'
                 func = layer.function_cpp()
                 if func:
                     for line in func:
@@ -174,8 +163,8 @@ def write_project_header(model):
 
         if 'MYPROJECT' in line:
             newline = line.replace('MYPROJECT',format(model.get_project_name().upper()))
-        elif 'void myproject(' in line:
-            newline = 'void {}(\n'.format(model.get_project_name())
+        elif 'component void myproject(' in line:
+            newline = 'component void {}(\n'.format(model.get_project_name())
         elif '//hls-fpga-machine-learning insert header' in line:
             inputs_str = ', '.join([i.definition_cpp() for i in model_inputs])
             outputs_str = ', '.join([o.definition_cpp() for o in model_outputs])
@@ -291,29 +280,43 @@ def write_test_bench(model):
 
 def write_build_script(model):
     ###################
-    # build_prj.tcl
+    # Makefile
     ###################
 
     filedir = os.path.dirname(os.path.abspath(__file__))
     nnetdir = os.path.abspath(os.path.join(filedir, "../nnet_utils"))
     relpath = os.path.relpath(nnetdir, start=model.get_output_dir())
 
-    f = open(os.path.join(filedir,'../hls-template/build_prj.tcl'),'r')
-    fout = open('{}/build_prj.tcl'.format(model.get_output_dir()),'w')
+    f = open(os.path.join(filedir,'../hls-template/Makefile'),'r')
+    fout = open('{}/Makefile'.format(model.get_output_dir()),'w')
 
     for line in f.readlines():
 
         line = line.replace('myproject',model.get_project_name())
-        line = line.replace('nnet_utils', relpath)
 
-        if 'set_part {xc7vx690tffg1927-2}' in line:
-            line = 'set_part {{{}}}\n'.format(model.get_config_value('XilinxPart'))
-        elif 'create_clock -period 5 -name default' in line:
-            line = 'create_clock -period {} -name default\n'.format(model.get_config_value('ClockPeriod'))
+        if 'DEVICE :=' in line:
+            line = 'DEVICE := {}\n'.format(model.get_config_value('Device'))
 
         fout.write(line)
     f.close()
     fout.close()
+
+def write_nnet_utils(model):
+    ###################
+    ## nnet_utils
+    ###################
+
+    filedir = os.path.dirname(os.path.abspath(__file__))
+    
+    srcpath = os.path.join(filedir,'../nnet_utils/')
+    dstpath = '{}/firmware/nnet_utils/'.format(model.get_output_dir())
+    
+    if not os.path.exists(dstpath):
+        os.mkdir(dstpath)
+
+    copyfile(srcpath + 'nnet_activation.h', dstpath + 'nnet_activation.h')
+    copyfile(srcpath + 'nnet_common.h', dstpath + 'nnet_common.h')
+    copyfile(srcpath + 'nnet_dense.h', dstpath + 'nnet_dense.h')
 
 def write_tar(model):
     ###################
@@ -330,4 +333,5 @@ def write_hls(model):
     write_parameters(model)
     write_test_bench(model)
     write_build_script(model)
+    write_nnet_utils(model)
     write_tar(model)

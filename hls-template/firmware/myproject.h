@@ -20,15 +20,14 @@
 #ifndef MYPROJECT_H_
 #define MYPROJECT_H_
 
+#include "HLS/hls.h"
 #include <complex>
-#include "ap_int.h"
-#include "ap_fixed.h"
 
 #include "parameters.h"
 
 
 // Prototype of top level function for C-synthesis
-void myproject(
+component void myproject(
     //hls-fpga-machine-learning insert header
 );
 

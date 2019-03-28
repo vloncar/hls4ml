@@ -20,7 +20,11 @@
 #ifndef NNET_COMMON_H_
 #define NNET_COMMON_H_
 
-#include "ap_fixed.h"
+#ifndef __INTELFPGA_COMPILER__
+#include "ref/ac_fixed.h"
+#else
+#include "HLS/ac_fixed.h"
+#endif
 
 namespace nnet {
 
@@ -28,9 +32,9 @@ namespace nnet {
 enum io_type {io_parallel = 0, io_serial};
 
 // Default data types (??) TODO: Deprecate
-typedef ap_fixed<16,4>  weight_t_def;
-typedef ap_fixed<16,4>  bias_t_def;
-typedef ap_fixed<32,10> accum_t_def;
+typedef ac_fixed<16,4>  weight_t_def;
+typedef ac_fixed<16,4>  bias_t_def;
+typedef ac_fixed<32,10> accum_t_def;
 
  template<class data_T, int NIN1, int NIN2>
    void merge(

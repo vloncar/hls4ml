@@ -2,16 +2,21 @@
 #define PARAMETERS_H_
 
 #include <complex>
-#include "ap_int.h"
-#include "ap_fixed.h"
-#include "nnet_dense.h"
-#include "nnet_conv.h"
-#include "nnet_conv2d.h"
-#include "nnet_activation.h"
-#include "nnet_common.h"
-#include "nnet_batchnorm.h"
-#include "nnet_pooling.h"
-#include "nnet_merge.h"
+#ifndef __INTELFPGA_COMPILER__
+#include "ref/ac_int.h"
+#include "ref/ac_fixed.h"
+#else
+#include "HLS/ac_int.h"
+#include "HLS/ac_fixed.h"
+#endif
+#include "nnet_utils/nnet_dense.h"
+//#include "nnet_utils/nnet_conv.h"
+//#include "nnet_utils/nnet_conv2d.h"
+#include "nnet_utils/nnet_activation.h"
+//#include "nnet_utils/nnet_common.h"
+//#include "nnet_utils/nnet_batchnorm.h"
+//#include "nnet_utils/nnet_pooling.h"
+//#include "nnet_utils/nnet_merge.h"
 
 //hls-fpga-machine-learning insert numbers
 

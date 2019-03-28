@@ -24,7 +24,6 @@
 
 #include "firmware/parameters.h"
 #include "firmware/myproject.h"
-#include "nnet_helpers.h"
 
 
 int main(int argc, char **argv)

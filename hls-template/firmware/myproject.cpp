@@ -22,7 +22,7 @@
 
 //hls-fpga-machine-learning insert weights
 
-void myproject(
+component void myproject(
 	//hls-fpga-machine-learning insert header
 ) {
 
