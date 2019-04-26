@@ -48,7 +48,7 @@ myproject-x86-64: $(SOURCE_FILES)
 ifeq ($(VERBOSE),1)
   myproject-fpga: CXXFLAGS := $(CXXFLAGS) -v
 endif
-myproject-fpga: CXXFLAGS := $(CXXFLAGS) $(HLS_CXX_FLAGS) -march=Arria10 -o myproject-fpga
+myproject-fpga: CXXFLAGS := $(CXXFLAGS) $(HLS_CXX_FLAGS) -march=$(DEVICE) -o myproject-fpga
 myproject-fpga: $(SOURCE_FILES)
 	$(CXX) $(SOURCE_FILES) $(CXXFLAGS)
 	@echo "+-------------------------------------------+"
