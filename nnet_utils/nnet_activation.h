@@ -130,14 +130,37 @@ void  sigmoid(data_T data[CONFIG_T::n_in], res_T res[CONFIG_T::n_in])
     }
 
     // Index into the lookup table based on data
-    int data_round;
-    int index;
+    // int data_round;
+    // int index;
+    // for (int ii=0; ii<CONFIG_T::n_in; ii++) {
+    //     data_round = data[ii] * (CONFIG_T::table_size/16);
+    //     index = data_round + 8*CONFIG_T::table_size/16;
+    //     if (index < 0)   index = 0;
+    //     if (index > CONFIG_T::table_size-1) index = CONFIG_T::table_size-1;
+    //     res[ii] = (res_T) sigmoid_table[index];
+    // }
+    
+    // int data_round;
+    // int index;
+    // for (int ii=0; ii<CONFIG_T::n_in; ii++) {
+    //     data_round = data[ii] * (CONFIG_T::table_size/16);
+    //     index = data_round + 8*CONFIG_T::table_size/16;
+    //     if (index < 0)   index = 0;
+    //     if (index > CONFIG_T::table_size-1) index = CONFIG_T::table_size-1;
+    //     res[ii] = (res_T) sigmoid_table[index];
+    // }
+
+    data_T data_cache[CONFIG_T::n_in];
+    ac_int<32> data_round;
+    ac_int<32> index;
+    for (int ii=0; ii<CONFIG_T::n_in; ii++) { data_cache[ii] = data[ii]; }
     for (int ii=0; ii<CONFIG_T::n_in; ii++) {
-        data_round = data[ii]*CONFIG_T::table_size/16;
-        index = data_round + 8*CONFIG_T::table_size/16;
-        if (index < 0)   index = 0;
-        if (index > CONFIG_T::table_size-1) index = CONFIG_T::table_size-1;
-        res[ii] = (res_T) sigmoid_table[index];
+		ac_int<32> _table_size_16 = ac_int<32>(CONFIG_T::table_size)/ac_int<32>(16);
+		data_round = (data_cache[ii] * _table_size_16).to_int();
+		index = data_round + ac_int<32>(8)*(ac_int<32>(CONFIG_T::table_size)/ac_int<32>(16));
+		if (index < 0)   index = 0;
+		if (index > CONFIG_T::table_size-1) index = CONFIG_T::table_size-1;
+		res[ii] = (res_T) sigmoid_table[index];
     }
 }
 
