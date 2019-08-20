@@ -336,7 +336,22 @@ def write_build_script(model):
         fout.write(line)
     f.close()
     fout.close()
+    
+    f = open(os.path.join(filedir,'../hls-template/script.tcl'),'r')
+    fout = open('{}/script.tcl'.format(model.config.get_output_dir()),'w')    
+    for line in f.readlines():
 
+        line = line.replace('myproject',model.config.get_project_name())
+	
+        if '-part' in line:
+         line = 'synth_design -top {} -part {}\n'.format(model.config.get_project_name(),model.config.get_config_value('XilinxPart'))
+	
+        fout.write(line)
+    f.close()
+    fout.close()	 
+	
+	
+	
 def write_tar(model):
     ###################
     # Tarball output
