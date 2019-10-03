@@ -177,3 +177,9 @@ def register_templates(name, function_template, config_template):
 
     function_templates[name] = function_template
     config_templates[name] = config_template
+
+custom_layers = []
+
+def register_cpp_template(filename, export_path='nnet_utils'):
+    global custom_layers
+    custom_layers.append({'file':filename, 'path':export_path})

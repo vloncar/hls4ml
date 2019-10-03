@@ -8,6 +8,8 @@ import re
 import glob
 from collections import OrderedDict
 
+from ..model.templates import custom_layers
+
 #######################################
 ## Print weight array to C++
 #######################################
@@ -187,14 +189,41 @@ def write_project_header(model):
     fout.close()
 
 def write_parameters(model):
+
+    import_files = {
+                'nnet::dense':'#include "nnet_utils/nnet_dense.h"',
+                'nnet::dense_large':'#include "nnet_utils/nnet_dense_large.h"',
+                'nnet::dense_compressed':'#include "nnet_utils/nnet_dense_compressed.h"',
+                'nnet::conv':'#include "#include "nnet_utils/nnet_conv.h"',
+                'nnet::conv2d':'#include "nnet_utils/nnet_conv2d.h"',
+                'nnet::batchnorm':'#include "nnet_utils/nnet_batchnorm.h"',
+                'nnet::pooling':'#include "nnet_utils/nnet_pooling.h"',
+                'nnet::merge':'#include "nnet_utils/nnet_merge.h"'
+            }
+
+    layers_to_import = set()
+    for lay in model.get_layers():
+         layer_function_cpp = str(lay.function_cpp()).split('<')[0][2:]
+         if lay.function_cpp() != None and layer_function_cpp in import_files:
+             layers_to_import.add(import_files[layer_function_cpp] + '\n')
+
     filedir = os.path.dirname(os.path.abspath(__file__))
     f = open(os.path.join(filedir,'../templates/vivado/firmware/parameters.h'),'r')
     fout = open('{}/firmware/parameters.h'.format(model.config.get_output_dir()),'w')
 
     for line in f.readlines():
+        if '//hls-fpga-machine-learning import layers' in line:
+            newline = ''
+            for lay in layers_to_import:
+                newline += lay
+            for template in custom_layers:
+                newline += '#include "{}/{}"\n'.format(template['path'], template['file'])
+                dstpath = model.config.get_output_dir() + '/firmware/' + template['path']
+                if not os.path.exists(dstpath):
+                    os.mkdir(dstpath)
+                copyfile(template['file'], '{}/{}'.format(dstpath, template['file']))
 
-        #Insert numbers
-        if '//hls-fpga-machine-learning insert numbers' in line:
+        elif '//hls-fpga-machine-learning insert numbers' in line:
             newline = line
             numbers = OrderedDict.fromkeys([layer.get_numbers_cpp() for layer in model.get_layers()])
             newline += ''.join(numbers)
@@ -352,7 +381,6 @@ def write_nnet_utils(model):
 
     for h in headers:
         copyfile(srcpath + h, dstpath + h)
-
 
 def write_tar(model):
     ###################
