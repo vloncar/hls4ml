@@ -9,6 +9,12 @@ from hls4ml.model.optimizer import optimize_model
 
 MAXMULT = 4096
 
+custom_layers_callbacks = {}
+
+def register_callback(layer_name, layer_function):
+    global custom_layers_callbacks
+    custom_layers_callbacks[layer_name] = layer_function
+
 class KerasDataReader:
     def __init__(self, config):
         self.config = config
@@ -314,6 +320,8 @@ def keras_to_hls(yamlConfig):
                 layer['class_name'] = 'Merge'
             if len(layer['inputs']) > 2:
                 raise Exception('ERROR: Merging more than two tensors is not yet supported.')
+        elif layer['class_name'] in custom_layers_callbacks:
+            current_shape = custom_layers_callbacks[layer['class_name']]
 
         print('Layer name: {}, layer type: {}, current shape: {}'.format(layer['name'], layer['class_name'], current_shape))
         layer_list.append( layer )

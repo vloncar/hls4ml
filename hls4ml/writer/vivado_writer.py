@@ -8,7 +8,7 @@ import re
 import glob
 from collections import OrderedDict
 
-from ..model.templates import custom_layers
+from ..model.templates import custom_layers_cpp_files
 
 #######################################
 ## Print weight array to C++
@@ -216,7 +216,7 @@ def write_parameters(model):
             newline = ''
             for lay in layers_to_import:
                 newline += lay
-            for template in custom_layers:
+            for template in custom_layers_cpp_files:
                 newline += '#include "{}/{}"\n'.format(template['path'], template['file'])
                 dstpath = model.config.get_output_dir() + '/firmware/' + template['path']
                 if not os.path.exists(dstpath):

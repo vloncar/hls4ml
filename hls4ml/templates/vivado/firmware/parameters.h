@@ -3,7 +3,7 @@
 
 #include <complex>
 #include "ap_int.h"
-#include "ap_fixed.h""
+#include "ap_fixed.h"
 #include "nnet_utils/nnet_activation.h"
 #include "nnet_utils/nnet_common.h"
 #include "nnet_utils/nnet_helpers.h"
