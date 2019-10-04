@@ -1012,12 +1012,6 @@ layer_map = {
     'Concatenate'        : Concatenate,
 }
 
-custom_layers_info = {}
-
 def register_layer(name, clazz):
     global layer_map
     layer_map[name] = clazz
-
-def register_layer_h_file(name, src, dst):
-    global custom_layers_info
-    custom_layers_info[name] = {'src':src, 'dst':dst}
