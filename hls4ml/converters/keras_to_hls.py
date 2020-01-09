@@ -3,6 +3,7 @@ import numpy as np
 import h5py
 import json
 import math
+import keras
 
 from hls4ml.model import HLSModel
 from hls4ml.model.optimizer import optimize_model
@@ -67,10 +68,9 @@ def keras_to_hls(yamlConfig):
     layer_list = []
     
     #If the json file is not provided, interpret this as the full model is saved in KerasH5 with model.save()
-    if 'KerasJson' not in yamlConfig:
-        with open( yamlConfig['KerasH5'] ) as h5_file:
+    if  not yamlConfig['KerasJson']:
             #Load the model's info and add them in a dict
-            full_model =  keras.models.load_model(h5_file)
+            full_model =  keras.models.load_model(yamlConfig['KerasH5'])
             model_arch = {
                     "class_name": full_model.__class__.__name__,
                     "config": full_model.get_config()
