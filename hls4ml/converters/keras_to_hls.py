@@ -19,23 +19,41 @@ class KerasDataReader:
                 return name
 
         with h5py.File(self.config['KerasH5'], 'r') as h5file:
-            found_data = h5file[layer_name].visit(h5_visitor_func)
-            if found_data:
-                data = h5file[layer_name][found_data][()]
-            else:
-                data = None
+            #If the h5 file is the whole model saved with model.save()
+            if 'model_weights' in list(h5file.keys()):
+                found_data = h5file['model_weights/{}'.format(layer_name)].visit(h5_visitor_func)
+                if found_data:
+                    data = h5file['model_weights/{}'.format(layer_name)][found_data][()]
+                else:
+                    data = None
+                    
+            else:       
+                found_data = h5file[layer_name].visit(h5_visitor_func)
+                if found_data:
+                    data = h5file[layer_name][found_data][()]
+                else:
+                    data = None
 
         return data
 
-def get_weights_shape(h5filename, layer_name, var_name='kernel'):
+def get_weights_shape(h5filename, layer_name, var_name='kernel'): 
     def h5_visitor_func(name):
         if var_name in name:
             return name
 
     with h5py.File(h5filename, 'r') as h5file:
-        found_data = h5file[layer_name].visit(h5_visitor_func)
-        if found_data:
-            shape = h5file[layer_name][found_data].shape
+        
+        #If the h5 file is the whole model saved with model.save()
+        if 'model_weights' in list(h5file.keys()):
+            found_data = h5file['model_weights/{}'.format(layer_name)].visit(h5_visitor_func)
+            if found_data:
+                shape = h5file['model_weights/{}/{}'.format(layer_name, found_data)].shape
+            
+        #If not then treat it with regular h5 weights file
+        else:
+            found_data = h5file[layer_name].visit(h5_visitor_func)
+            if found_data:
+                shape = h5file['/{}/{}'.format(layer_name,found_data)].shape
 
     return shape
 
