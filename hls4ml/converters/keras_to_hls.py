@@ -69,7 +69,7 @@ def keras_to_hls(yamlConfig):
     #If the json file is not provided, interpret this as the full model is saved in KerasH5 with model.save()
     if  not yamlConfig['KerasJson']:
             #Load the model's info and add them in a dict
-            filepath = yamlConfig['KerasJson']
+            filepath = yamlConfig['KerasH5']
 
             #Open file
             opened_new_file = not isinstance(filepath, h5py.File)
