@@ -47,10 +47,21 @@ def keras_to_hls(yamlConfig):
 
     #This is a list of dictionaries to hold all the layer info we need to generate HLS
     layer_list = []
-
-    #Extract model architecture from json
-    with open( yamlConfig['KerasJson'] ) as json_file:
-        model_arch = json.load(json_file)
+    
+    #If the json file is not provided, interpret this as the full model is saved in KerasH5 with model.save()
+    if 'KerasJson' not in yamlConfig:
+        with open( yamlConfig['KerasH5'] ) as h5_file:
+            #Load the model's info and add them in a dict
+            full_model =  keras.models.load_model(h5_file)
+            model_arch = {
+                    "class_name": full_model.__class__.__name__,
+                    "config": full_model.get_config()
+                    }
+    else:
+        #Extract model architecture from json
+        with open( yamlConfig['KerasJson'] ) as json_file:
+            model_arch = json.load(json_file)
+    
     #print(model_arch)
 
     #Define supported laers
