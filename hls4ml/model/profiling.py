@@ -46,10 +46,20 @@ def boxplot(data, fmt='longform'):
         vp.set_xscale('log', basex=2)
         return f
     elif fmt == 'summary':
+        from matplotlib.patches import Rectangle
         medianprops = dict(linestyle='-', color='k')
         f, ax = plt.subplots(1, 1)
         data.reverse()
+        colors = sb.color_palette("Blues", len(data))
         bp = ax.bxp(data, showfliers=False, vert=False, medianprops=medianprops)
+        # add colored boxes
+        for line, color in zip(bp['boxes'], colors):
+            x = line.get_xdata()
+            xl, xh = min(x), max(x)
+            y = line.get_ydata()
+            yl, yh = min(y), max(y)
+            rect = Rectangle((xl, yl), (xh-xl), (yh-yl), fill=True, color=color)
+            ax.add_patch(rect)
         ax.set_yticklabels([d['weight'] for d in data])
         ax.set_xscale('log', basex=2)
         plt.xlabel('x')
@@ -252,14 +262,16 @@ def activations_keras(model, X, fmt='longform', plot='boxplot'):
         data = pandas.DataFrame(data)
     return data
 
-def numerical(keras_model=None, hlsmodel=None, X=None, plot='boxplot'):
+def numerical(keras_model=None, hls_model=None, X=None, plot='boxplot'):
     """
     Perform numerical profiling of a model
 
     Parameters
     ----------
-    model : keras model
+    keras_model : keras model
         The keras model to profile
+    hls_model : HLSModel
+        The HLSModel to profile
     X : array-like, optional
         Test data on which to evaluate the model to profile activations
         Must be formatted suitably for the model.predict(X) method
@@ -274,8 +286,8 @@ def numerical(keras_model=None, hlsmodel=None, X=None, plot='boxplot'):
     """
 
     print("Profiling weights")
-    if hlsmodel is not None and isinstance(hlsmodel, HLSModel):
-        data = weights_hlsmodel(hlsmodel, fmt='summary', plot=plot)
+    if hls_model is not None and isinstance(hls_model, HLSModel):
+        data = weights_hlsmodel(hls_model, fmt='summary', plot=plot)
     elif keras_model is not None and isinstance(keras_model, keras.Model):
         data = weights_keras(keras_model, fmt='summary', plot=plot)
     else:
@@ -283,8 +295,8 @@ def numerical(keras_model=None, hlsmodel=None, X=None, plot='boxplot'):
         return False, False
 
     wp = plots[plot](data, fmt='summary') # weight plot
-    if isinstance(hlsmodel, HLSModel) and plot in types_plots:
-        t_data = types_hlsmodel(hlsmodel)
+    if isinstance(hls_model, HLSModel) and plot in types_plots:
+        t_data = types_hlsmodel(hls_model)
         types_plots[plot](t_data, fmt='summary')
 
     plt.title("Distribution of (non-zero) weights")
@@ -298,8 +310,8 @@ def numerical(keras_model=None, hlsmodel=None, X=None, plot='boxplot'):
         plt.title("Distribution of (non-zero) activations")
         plt.tight_layout()
 
-    if X is not None and isinstance(hlsmodel, HLSModel):
-        t_data = activation_types_hlsmodel(hlsmodel)
+    if X is not None and isinstance(hls_model, HLSModel):
+        t_data = activation_types_hlsmodel(hls_model)
         types_plots[plot](t_data, fmt='summary')
 
     return wp, ap
