@@ -252,3 +252,76 @@ def numerical(keras_model=None, hlsmodel=None, X=None, plot='boxplot'):
 
     return wp, ap
 
+########COMPARE OUTPUT IMPLEMENTATION########
+def _get_ysim_from_file(project_dir, layer_names):
+    
+    ysim = {}
+
+    for layer in layer_names:
+        ysim[layer] = np.loadtxt('{}/tb_data/{}_output.log'.format(project_dir, layer)).flatten()
+
+    return ysim
+
+def _is_ignored_layer(layer):
+    """Some layers needed to be ingored when comparing the activations"""
+    if isinstance(layer, (keras.layers.InputLayer, keras.layers.Dropout, keras.layers.Flatten)):
+        return True
+    return False
+
+def _get_ymodel_keras(keras_model, X):
+    
+    
+    partial_model = keras.models.Sequential()
+    ymodel = {}
+    
+    for layer in keras_model.layers:
+        partial_model.add(layer)
+        partial_model.compile(optimizer='adam', loss='mse')
+       
+        #Get output of each layer
+        
+        if not _is_ignored_layer(layer):
+            y = partial_model.predict(X).flatten()
+            ymodel[layer.name] = y
+
+    return ymodel
+
+def _calculate_difference(ymodel, ysim):
+    
+    diff = {}
+    
+    for key in list(ymodel.keys()):
+        diff[key] = np.linalg.norm(ymodel[key] - ysim[key])
+    
+    print(diff.keys())
+    return diff
+
+def compare(keras_model, hls_model, X, file_based=True):
+    """
+    Compare each layer's output in keras and hls model
+
+    Params:
+        keras_model: original keras model
+        hls_model: converted HLS model
+        file_based: whether the comparison is based on csim output files, 
+                    or memory based.
+    Return:
+        plot object of the histogram depicting the difference in each layer's ouput
+    """
+    
+    #Take in output from both models
+    #Note that each y is a dictionary with structure {"layer_name": flattened ouput array}
+    ymodel = _get_ymodel_keras(keras_model, X)
+    if file_based:
+        ysim = _get_ysim_from_file(hls_model.config.get_output_dir(), list(ymodel.keys()))
+    #else: to be implemented 
+    
+    diff = _calculate_difference(ymodel, ysim)
+    #Barplot displaying each layer's difference
+    f = plt.figure()
+    plt.bar(list(diff.keys()),list(diff.values()))
+    plt.title("layer-by-layer output  differences")
+    plt.xticks(rotation=90)
+    plt.tight_layout()
+    
+    return f
