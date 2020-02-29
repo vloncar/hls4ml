@@ -270,7 +270,6 @@ def _is_ignored_layer(layer):
 
 def _get_ymodel_keras(keras_model, X):
     
-    
     partial_model = keras.models.Sequential()
     ymodel = {}
     
