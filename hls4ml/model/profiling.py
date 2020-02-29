@@ -263,10 +263,21 @@ def _get_ysim_from_file(project_dir, layer_names):
     return ysim
 
 def _is_ignored_layer(layer):
-    """Some layers needed to be ingored when comparing the activations"""
-    if isinstance(layer, (keras.layers.InputLayer, keras.layers.Dropout, keras.layers.Flatten)):
+    """Some layers needed to be ingored during inference"""
+    if isinstance(layer, (keras.layers.InputLayer,
+                        keras.layers.Dropout, 
+                        keras.layers.Flatten)):
         return True
     return False
+
+def _add_layer_get_ouput(partial_model, layer, X):
+    copy_model = keras.models.clone_model(partial_model) #Make a copy to avoid modify the original model
+    copy_model.add(layer)
+    copy_model.compile(optimizer='adam', loss='mse')
+
+    y = copy_model.predict(X).flatten()
+
+    return y
 
 def _get_ymodel_keras(keras_model, X):
     
@@ -274,14 +285,32 @@ def _get_ymodel_keras(keras_model, X):
     ymodel = {}
     
     for layer in keras_model.layers:
-        partial_model.add(layer)
-        partial_model.compile(optimizer='adam', loss='mse')
-       
-        #Get output of each layer
-        
         if not _is_ignored_layer(layer):
-            y = partial_model.predict(X).flatten()
-            ymodel[layer.name] = y
+            #If the layer has activation integrated then separate them
+            #Note that if the layer is a standalone activation layer then skip this
+            if hasattr(layer, 'activation') and not isinstance(layer,keras.layers.Activation):
+                if layer.activation:
+                    
+                    if layer.activation.__name__ == "linear":
+                        ymodel[layer.name] = _add_layer_get_ouput(partial_model, layer, X)
+                    
+                    else:
+                        temp_activation = layer.activation
+                        layer.activation = None
+
+                        #Get output for layer without activation
+                        ymodel[layer.name] = _add_layer_get_ouput(partial_model, layer, X)
+
+                        #Get ouput for activation
+                        ymodel[layer.name + "_{}".format(temp_activation.__name__)] = temp_activation(ymodel[layer.name])
+                        
+                        #Add the activation back
+                        layer.activation = temp_activation
+            else:    
+                ymodel[layer.name] = _add_layer_get_ouput(partial_model, layer, X)
+        
+        #Add the layer for later processing
+        partial_model.add(layer)
 
     return ymodel
 
