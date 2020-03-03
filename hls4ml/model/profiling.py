@@ -375,13 +375,26 @@ def _norm_diff(ymodel, ysim):
 def _dist_diff(ymodel, ysim):
     """
     Calculate the normalized distribution of the differences of the elements
-    of the output vectors 
+    of the output vectors. 
+    If difference >= original value then the normalized difference will be set to 1,
+    meaning "very difference".
+    If difference < original value then the normalized difference would be difference/original.
     """
 
     diff = {}
 
     for key in list(ymodel.keys()):
-        diff[key] = np.absolute(ymodel[key] - ysim[key]) / np.linalg.norm(ymodel[key]-ysim[key])
+        diff_vector = np.absolute(ymodel[key] - ysim[key])
+        abs_ymodel = np.absolute(ymodel[key])
+    
+        normalized_diff = np.zeros(diff_vector.shape)
+        normalized_diff[diff_vector >= abs_ymodel] = 1
+        
+        #Fill out the rest
+        index = diff_vector < abs_ymodel
+        normalized_diff[index] = diff_vector[index] / abs_ymodel[index]
+        
+        diff[key] = normalized_diff
     
     #---Box Plot---
     f, ax = plt.subplots()
@@ -391,7 +404,7 @@ def _dist_diff(ymodel, ysim):
     #--formatting
     plt.title("Layer-by-layer distribution of output differences")
     ax.set_xticklabels(list(diff.keys()))
-    ax.set_ylabel('Normalized difference')
+    ax.set_ylabel('Percent difference.')
     plt.xticks(rotation=90)
     plt.tight_layout()
 
