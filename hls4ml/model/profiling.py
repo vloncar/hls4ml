@@ -253,17 +253,41 @@ def numerical(keras_model=None, hlsmodel=None, X=None, plot='boxplot'):
     return wp, ap
 
 ########COMPARE OUTPUT IMPLEMENTATION########
-def _get_ysim_from_file(project_dir, layer_names):
+def get_ysim_from_file(project_dir, layer_names):
+    """
+    Get each layer's output from converted hls project. Note that the project
+    has to be complied prior to using this method in Debug mode (i.e specify Debug: True in config file).
     
+    You have to run get_ymodel_keras(keras_model, X) first to obtain ymodel, then use the keys of
+    ymodel to pass to layer_names. This is because we want identical keys betwen ymodel and ysim.
+    
+    Example of how to use this:
+
+    ymodel = get_ymodel_keras(keras_model, X)
+    ysim = get_ysim_from_file(project_dir, list(ymodel.keys()))
+
+    Params:
+    ------
+    project_dir : string
+        Relative path to the hls project's directory
+    layer_names : list
+        A list of layer's names in the model. (Obtained via ymodel.keys()) 
+
+    Return:
+    ------
+        A dictionary in the form {"layer_name": ouput array of layer in hls model}
+    """
     ysim = {}
 
     for layer in layer_names:
+        print("Processing {} in HLS model...".format(layer))
         ysim[layer] = np.loadtxt('{}/tb_data/{}_output.log'.format(project_dir, layer)).flatten()
 
+    print("Done taking outputs for HLS model.")
     return ysim
 
 def _is_ignored_layer(layer):
-    """Some layers needed to be ingored during inference"""
+    """Some layers need to be ingored during inference"""
     if isinstance(layer, (keras.layers.InputLayer,
                         keras.layers.Dropout, 
                         keras.layers.Flatten)):
@@ -279,12 +303,27 @@ def _add_layer_get_ouput(partial_model, layer, X):
 
     return y
 
-def _get_ymodel_keras(keras_model, X):
+def get_ymodel_keras(keras_model, X):
+    """
+    Calculate each layer's ouput and put them into a dictionary
+
+    Params:
+    ------
+    keras_model: a keras model
+    X : array-like
+        Test data on which to evaluate the model to profile activations
+        Must be formatted suitably for the model.predict(X) method
+
+    Return:
+    ------
+        A dictionary in the form {"layer_name": ouput array of layer}
+    """
     
     partial_model = keras.models.Sequential()
     ymodel = {}
     
     for layer in keras_model.layers:
+        print("Processing {} in Keras model...".format(layer.name))
         if not _is_ignored_layer(layer):
             #If the layer has activation integrated then separate them
             #Note that if the layer is a standalone activation layer then skip this
@@ -312,44 +351,91 @@ def _get_ymodel_keras(keras_model, X):
         #Add the layer for later processing
         partial_model.add(layer)
 
+    print("Done taking outputs for Keras model.")
     return ymodel
 
-def _calculate_difference(ymodel, ysim):
-    
+def _norm_diff(ymodel, ysim):
+    """Calculate the square root of the sum of the squares of the differences"""
     diff = {}
     
     for key in list(ymodel.keys()):
-        diff[key] = np.linalg.norm(ymodel[key] - ysim[key])
+        diff[key] = np.linalg.norm(ysim[key]-ymodel[key])
     
-    print(diff.keys())
-    return diff
+    #---Bar Plot---
+    f, ax = plt.subplots()
 
-def compare(keras_model, hls_model, X, file_based=True):
+    plt.bar(list(diff.keys()),list(diff.values()))
+    plt.title("layer-by-layer output differences")
+    ax.set_ylabel('Norm of difference vector')
+    plt.xticks(rotation=90)
+    plt.tight_layout()
+
+    return f
+
+def _dist_diff(ymodel, ysim):
+    """
+    Calculate the normalized distribution of the differences of the elements
+    of the output vectors 
+    """
+
+    diff = {}
+
+    for key in list(ymodel.keys()):
+        diff[key] = np.absolute(ymodel[key] - ysim[key]) / np.linalg.norm(ymodel[key]-ysim[key])
+    
+    #---Box Plot---
+    f, ax = plt.subplots()
+    pos = np.array(range(len(list(diff.values())))) + 1            
+    ax.boxplot(list(diff.values()), sym='k+', positions=pos)
+    
+    #--formatting
+    plt.title("Layer-by-layer distribution of output differences")
+    ax.set_xticklabels(list(diff.keys()))
+    ax.set_ylabel('Normalized difference')
+    plt.xticks(rotation=90)
+    plt.tight_layout()
+
+    return f
+
+
+def compare(keras_model, hls_model, X, file_based=True, plot_type = "dist_diff"):
     """
     Compare each layer's output in keras and hls model
 
     Params:
-        keras_model: original keras model
-        hls_model: converted HLS model
-        file_based: whether the comparison is based on csim output files, 
-                    or memory based.
+    ------
+    keras_model : original keras model
+    hls_model : converted HLS model
+    file_based : (boolean) whether the comparison is based on csim output files, 
+                 or memory based.
+    plot_type : (string) different methods to visualize the y_model and y_sim differences.
+                Possible options include:
+                     - "norm_diff" : square root of the sum of the squares of the differences 
+                                    between each output vectors 
+                     - "dist_diff" : The normalized distribution of the differences of the elements
+                                    between two output vectors
+        
+
     Return:
+    ------
         plot object of the histogram depicting the difference in each layer's ouput
     """
     
     #Take in output from both models
     #Note that each y is a dictionary with structure {"layer_name": flattened ouput array}
-    ymodel = _get_ymodel_keras(keras_model, X)
+    ymodel = get_ymodel_keras(keras_model, X)
+
     if file_based:
-        ysim = _get_ysim_from_file(hls_model.config.get_output_dir(), list(ymodel.keys()))
+        ysim = get_ysim_from_file(hls_model.config.get_output_dir(), list(ymodel.keys()))
     #else: to be implemented 
     
-    diff = _calculate_difference(ymodel, ysim)
-    #Barplot displaying each layer's difference
+    print("Plotting difference...")
     f = plt.figure()
-    plt.bar(list(diff.keys()),list(diff.values()))
-    plt.title("layer-by-layer output  differences")
-    plt.xticks(rotation=90)
-    plt.tight_layout()
-    
+
+    if plot_type == "norm_diff":
+        f = _norm_diff(ymodel, ysim)
+
+    elif plot_type == "dist_diff":
+        f = _dist_diff(ymodel, ysim)
+
     return f
