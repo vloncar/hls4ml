@@ -381,9 +381,9 @@ class HLSModel(object):
         os.chdir(self.config.get_output_dir() + '/firmware')
 
         output = []
-        for _ in range(n_samples):
+        for i in range(n_samples):
             predictions = np.zeros(self.get_output_variables()[0].size(), dtype=ctype)
-            top_function(x, predictions, ctypes.byref(size_in), ctypes.byref(size_out))
+            top_function(x[i], predictions, ctypes.byref(size_in), ctypes.byref(size_out))
             output.append(predictions)
 
         os.chdir(curr_dir)
