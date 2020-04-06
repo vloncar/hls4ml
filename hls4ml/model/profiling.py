@@ -462,7 +462,7 @@ def _dist_diff(ymodel, ysim):
 
 def compare(keras_model, hls_model, X, plot_type = "dist_diff"):
     """
-    Compare each layer's output in keras and hls model
+    Compare each layer's output in keras and hls model. Note that the hls_model should not be compiled before using this.
     Params:
     ------
     keras_model : original keras model

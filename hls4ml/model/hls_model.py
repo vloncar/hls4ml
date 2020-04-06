@@ -471,11 +471,8 @@ class HLSModel(object):
                 np_array = np.ctypeslib.as_array(layer_data, shape=layer_sizes[layer_name])
                 trace_output[layer_name].append(np.copy(np_array))
 
-        #Convert each layer's ouput data to arrays
-        trace_output_array = {}
-
         for key in trace_output.keys():
-            trace_output_array[key] = np.array(trace_output[key])
+            trace_output[key] = np.array(trace_output[key])
 
         #Convert to numpy array
         output = np.array(output)
@@ -485,9 +482,9 @@ class HLSModel(object):
         os.chdir(curr_dir)
 
         if n_samples == 1:
-            return output[0], trace_output_array
+            return output[0], trace_output
         else:
-            return output, trace_output_array
+            return output, trace_output
 
     def build(self, reset=False, csim=True, synth=True, cosim=False, validation=False, export=False, vsynth=False):
         if 'linux' in sys.platform:

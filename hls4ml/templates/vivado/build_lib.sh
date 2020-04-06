@@ -7,7 +7,7 @@ elif [[ "$OSTYPE" == "darwin"* ]]; then
     CFLAGS="-O3 -fPIC -std=c++11"
 fi
 LDFLAGS=
-INCFLAGS="-I firmware/ap_types/"
+INCFLAGS="-Ifirmware/ap_types/"
 PROJECT=myproject
 
 ${CC} ${CFLAGS} ${INCFLAGS} -c firmware/${PROJECT}.cpp -o ${PROJECT}.o
