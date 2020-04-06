@@ -317,21 +317,14 @@ def numerical(keras_model=None, hls_model=None, X=None, plot='boxplot'):
     return wp, ap
 
 ########COMPARE OUTPUT IMPLEMENTATION########
-def get_ysim_from_file(project_dir, layer_names):
+def get_ysim_from_hls(hls_model, X):
     """
     Get each layer's output from converted hls project. Note that the project
-    has to be complied prior to using this method in Debug mode (i.e specify Debug: True in config file).
-    
-    You have to run get_ymodel_keras(keras_model, X) first to obtain ymodel, then use the keys of
-    ymodel to pass to layer_names. This is because we want identical keys betwen ymodel and ysim.
-    
-    Example of how to use this:
-    ymodel = get_ymodel_keras(keras_model, X)
-    ysim = get_ysim_from_file(project_dir, list(ymodel.keys()))
+    has to be complied prior to using this method in Trace mode (i.e specify Trace: True in config file for the whole model).
+
     Params:
     ------
-    project_dir : string
-        Relative path to the hls project's directory
+    hls_model : converted HLS model, with "Trace:True" in the configuration file.
     layer_names : list
         A list of layer's names in the model. (Obtained via ymodel.keys()) 
     Return:
@@ -341,11 +334,8 @@ def get_ysim_from_file(project_dir, layer_names):
 
     ysim = {}
 
-    for layer in layer_names:
-        print("Processing {} in HLS model...".format(layer))
-        ysim[layer] = np.loadtxt('{}/tb_data/{}_output.log'.format(project_dir, layer)).flatten()
-    
-    print("Done taking outputs for HLS model.")
+    print("Processing outputs in HLS model...")
+    _, ysim= hls_model.trace(X)
 
     return ysim
 
@@ -361,7 +351,7 @@ def _add_layer_get_ouput(partial_model, layer, X):
     copy_model = keras.models.clone_model(partial_model) #Make a copy to avoid modify the original model
     copy_model.add(layer)
     copy_model.compile(optimizer='adam', loss='mse')
-    y = copy_model.predict(X).flatten()
+    y = copy_model.predict(X)
     return y
 
 def get_ymodel_keras(keras_model, X):
@@ -439,9 +429,12 @@ def _dist_diff(ymodel, ysim):
     diff = {}
 
     for key in list(ymodel.keys()):
-        diff[key] = np.absolute(ymodel[key] - ysim[key]) / np.linalg.norm(ymodel[key]-ysim[key])
-        diff_vector = np.absolute(ymodel[key] - ysim[key])
-        abs_ymodel = np.absolute(ymodel[key])
+        flattened_ysim = ysim[key].flatten()
+        flattened_ymodel = np.array(ymodel[key]).flatten()
+
+        diff[key] = np.absolute(flattened_ymodel - flattened_ysim) / np.linalg.norm(flattened_ymodel - flattened_ysim)
+        diff_vector = np.absolute(flattened_ymodel - flattened_ysim)
+        abs_ymodel = np.absolute(flattened_ymodel)
 
         normalized_diff = np.zeros(diff_vector.shape)
         normalized_diff[diff_vector >= abs_ymodel] = 1
@@ -467,15 +460,14 @@ def _dist_diff(ymodel, ysim):
 
     return f
 
-def compare(keras_model, hls_model, X, file_based=True, plot_type = "dist_diff"):
+def compare(keras_model, hls_model, X, plot_type = "dist_diff"):
     """
     Compare each layer's output in keras and hls model
     Params:
     ------
     keras_model : original keras model
-    hls_model : converted HLS model
-    file_based : (boolean) whether the comparison is based on csim output files, 
-                 or memory based.
+    hls_model : converted HLS model, with "Trace:True" in the configuration file.
+    X: numpy array, input for the model. 
     plot_type : (string) different methods to visualize the y_model and y_sim differences.
                 Possible options include:
                      - "norm_diff" : square root of the sum of the squares of the differences 
@@ -491,9 +483,7 @@ def compare(keras_model, hls_model, X, file_based=True, plot_type = "dist_diff")
     #Take in output from both models
     #Note that each y is a dictionary with structure {"layer_name": flattened ouput array}
     ymodel = get_ymodel_keras(keras_model, X)
-    if file_based:
-        ysim = get_ysim_from_file(hls_model.config.get_output_dir(), list(ymodel.keys()))
-    #else: to be implemented 
+    ysim = get_ysim_from_hls(hls_model, X)
     
     print("Plotting difference...")
     f = plt.figure()
