@@ -2,6 +2,7 @@ from __future__ import print_function
 import six
 import os
 import sys
+import platform
 import ctypes
 import re
 import numpy as np
@@ -351,7 +352,12 @@ class HLSModel(object):
         os.system('cd {dir} && sh build_lib.sh'.format(dir=self.config.get_output_dir()))
         lib_name = '{}/firmware/{}.so'.format(self.config.get_output_dir(), self.config.get_project_name())
         if self._top_function_lib is not None:
-            dlclose_func = ctypes.CDLL('libdl.so').dlclose
+            
+            if platform.system() == "Linux":
+                dlclose_func = ctypes.CDLL('libdl.so').dlclose
+            elif platform.system() == "Darwin":
+                dlclose_func = ctypes.CDLL('libc.dylib').dlclose
+
             dlclose_func.argtypes = [ctypes.c_void_p]
             dlclose_func.restype = ctypes.c_int
             dlclose_func(self._top_function_lib._handle)    
@@ -410,7 +416,7 @@ class HLSModel(object):
         os.chdir(curr_dir)
 
         #Convert to numpy array
-        output = np.array(output)
+        output = np.asarray(output)
 
         if n_samples == 1:
             return output[0]
@@ -472,10 +478,10 @@ class HLSModel(object):
                 trace_output[layer_name].append(np.copy(np_array))
 
         for key in trace_output.keys():
-            trace_output[key] = np.array(trace_output[key])
+            trace_output[key] = np.asarray(trace_output[key])
 
         #Convert to numpy array
-        output = np.array(output)
+        output = np.asarray(output)
 
         free_func()
 
