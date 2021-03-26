@@ -24,12 +24,12 @@
 
 #ifndef __INTELFPGA_COMPILER__
 outputdat myproject(
-   //hls-fpga-machine-learning insert header
+   //hls-fpga-machine-learning insert header g++
 ) {
 #else
 //hls-fpga-machine-learning insert cpragmas
 component outputdat myproject(
-   //hls-fpga-machine-learning insert header
+   //hls-fpga-machine-learning insert header i++
 ) {
 #endif
 
