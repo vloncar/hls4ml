@@ -44,6 +44,8 @@ class HLSConfig(object):
         self._validate_hls_config()
 
     def get_config_value(self, key, default=None):
+        if key == "ExternalWeights":
+            print(f"{self.config=}")
         return self.config.get(key, default)
 
     def get_project_name(self):
