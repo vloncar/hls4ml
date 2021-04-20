@@ -78,12 +78,13 @@ class QuartusWriter(Writer):
 
         rf = int(layer.reuse_factor)
         weight_header = '#ifdef __INTELFPGA_COMPILER__\n'
-        if(rf == 1 or var.name[0] == 'b' or layer.get_attr('n_in')*layer.get_attr('n_out') <= 2048 or (var.name[0] == 'w' and (layer.binary_check() or layer.ternary_check()))):
+        if (rf == 1 or var.name[0] == 'b' or layer.get_attr('n_in')*layer.get_attr('n_out') <= 2048
+                or (var.name[0] == 'w' and var.type.precision.width < 3)):
             weight_header += 'hls_init_on_powerup\n'
         else:
             block_factor = (layer.get_attr('n_in')*layer.get_attr('n_out'))/rf
-            nbanks = int((pow(2, np.ceil(np.log(block_factor)/np.log(2))))/2)
-            var_width = int(np.ceil(int(re.findall('\d+',var.type.precision)[0])/8))
+            nbanks = int(2**np.ceil(np.log2(block_factor)) / 2)
+            var_width = int(np.ceil(var.type.precision.width / 8))
             bwidth = self.next_pow2(var_width)
             weight_header += 'hls_bankwidth({bwidth})\nhls_numbanks({nbanks})\nhls_max_replicates(1)\nhls_memory_impl("BLOCK_RAM")\n'.format(bwidth=bwidth, nbanks=nbanks)
         weight_header += '#endif\n'
