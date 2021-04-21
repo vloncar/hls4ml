@@ -21,7 +21,6 @@
 #include <algorithm>
 #include <vector>
 #include <string>
-//#include <sstream>
 #include <cctype>
 
 #include "firmware/parameters.h"
@@ -75,17 +74,6 @@ int main(int argc, char **argv)
       std::vector<float> in;
       std::vector<float> pr;
       float current;
-
-      // // stringstream not supported in cosim
-      // std::istringstream iss(iline);
-      // while(iss >> current) {
-      //   in.push_back(current);
-      // }
-
-      // std::istringstream pss(pline);
-      // while(pss >> current) {
-      //   pr.push_back(current);
-      // }
 
       std::size_t pos = 0;
       while(nextToken(iline, pos, current)) {
