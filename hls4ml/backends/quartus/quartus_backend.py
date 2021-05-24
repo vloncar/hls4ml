@@ -227,13 +227,14 @@ class QuartusBackend(FPGABackend):
         #self.register_templates('Resize'                 , resize_function_template,      resize_config_template, resize_include_list)
         #self.register_templates('Transpose'              , transpose_function_template,   transpose_config_template, transpose_include_list)
 
-    def create_initial_config(self, device='Arria10', clock_period=5, io_type='io_parallel'):
+    def create_initial_config(self, device='Arria10', clock_period=5, io_type='io_parallel', external_weights=False):
         config = {}
 
         config['Device'] = device if device is not None else 'Arria10'
         config['ClockPeriod'] = clock_period
         config['IOType'] = io_type
         config['HLSConfig'] = {}
+        config["ExternalWeights"] = external_weights
 
         return config
 

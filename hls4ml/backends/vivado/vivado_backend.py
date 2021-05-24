@@ -406,13 +406,14 @@ class VivadoBackend(FPGABackend):
         self.register_templates('GarNet'                 , garnet_function_template,      garnet_config_template, garnet_include_list)
         self.register_templates('GarNetStack'            , garnet_stack_function_template,garnet_stack_config_template, garnet_include_list)
 
-    def create_initial_config(self, device='xcku115-flvb2104-2-i', clock_period=5, io_type='io_parallel'):
+    def create_initial_config(self, device='xcku115-flvb2104-2-i', clock_period=5, io_type='io_parallel', external_weights=False):
         config = {}
 
         config['Device'] = device if device is not None else 'xcku115-flvb2104-2-i'
         config['ClockPeriod'] = clock_period
         config['IOType'] = io_type
         config['HLSConfig'] = {}
+        # external weights not yet supported
 
         return config
 
