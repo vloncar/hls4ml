@@ -1815,8 +1815,6 @@ class KLLoss(Layer):
         self.add_output_variable(shape=[1], dim_names=['KL_LOSS_{}'.format(self.index)])
         
         print(self.attributes)
-        if 'sum_t' not in self.attributes:
-            self.set_attr('sum_t', self.get_attr('accum_t'))        
         if 'exp_table_t' not in self.attributes:
             self.set_attr('exp_table_t', FixedPrecisionType(width=18, integer=8))
         if 'table_size' not in self.attributes:
