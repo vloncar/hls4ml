@@ -68,7 +68,7 @@ void klloss(
     for (unsigned i = 0; i < CONFIG_T::n_in; i++) {
         #pragma HLS UNROLL
         mean_sq[i] = mean[i] * mean[i];
-        //kl[i] = data2_T(1.) + log_var[i];
+        kl[i] = data2_T(1.) + log_var[i];
     }
 
     constexpr unsigned table_scale = (unsigned) (CONFIG_T::table_size / (2 * CONFIG_T::exp_range));
