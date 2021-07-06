@@ -118,7 +118,7 @@ def convert_from_config(config):
     return model
 
 def convert_from_keras_model(model, output_dir='my-hls-test', project_name='myproject',
-    backend='Vivado', device=None, clock_period=5, io_type='io_parallel', hls_config={}):
+    backend='Vivado', device=None, clock_period=5, io_type='io_parallel', external_weights=False, hls_config={}):
     """Convert to hls4ml model based on the provided configuration.
 
     Args:
@@ -135,6 +135,7 @@ def convert_from_keras_model(model, output_dir='my-hls-test', project_name='mypr
             Defaults to 5.
         io_type (str, optional): Type of implementation used. One of
             'io_parallel' or 'io_serial'. Defaults to 'io_parallel'.
+
         hls_config (dict, optional): The HLS config.
 
     Raises:
@@ -150,7 +151,8 @@ def convert_from_keras_model(model, output_dir='my-hls-test', project_name='mypr
         backend=backend,
         device=device,
         clock_period=clock_period,
-        io_type=io_type
+        io_type=io_type,
+        external_weights=external_weights
     )
     config['KerasModel'] = model
 

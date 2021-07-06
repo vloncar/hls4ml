@@ -240,13 +240,14 @@ class QuartusBackend(FPGABackend):
     def get_available_flows(self):
         return ['quartus_ip']
 
-    def create_initial_config(self, device='Arria10', clock_period=5, io_type='io_parallel'):
+    def create_initial_config(self, device='Arria10', clock_period=5, io_type='io_parallel', external_weights=False):
         config = {}
 
         config['Device'] = device if device is not None else 'Arria10'
         config['ClockPeriod'] = clock_period
         config['IOType'] = io_type
         config['HLSConfig'] = {}
+        config["ExternalWeights"] = external_weights
 
         return config
 
