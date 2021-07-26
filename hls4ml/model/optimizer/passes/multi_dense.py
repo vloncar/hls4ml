@@ -47,6 +47,8 @@ class ReplaceMultidimensionalDenseWithConv(OptimizerPass):
 
         class_name = 'PointwiseConv' + str(dim) + 'D'
         pw_node = model.make_node(class_name, node.name, pointwise_attrs, node.inputs.copy())
+        for key in node.weights:
+            pw_node.weights[key] = node.weights[key]
         model.replace_node(node, pw_node)
         
         return True

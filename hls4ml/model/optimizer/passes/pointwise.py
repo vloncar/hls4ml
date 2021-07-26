@@ -51,6 +51,8 @@ class OptimizePointwiseConv(OptimizerPass):
     def transform(self, model, node):
         dim = node.__class__.__name__[-2:] # '1D' or '2D'
         pw_node = model.make_node('PointwiseConv' + dim, node.name, node.attributes.copy(), node.inputs.copy())
+        for key in node.weights:
+            pw_node.weights[key] = node.weights[key]
         model.replace_node(node, pw_node)
         
         return True
