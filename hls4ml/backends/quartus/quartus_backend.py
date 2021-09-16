@@ -86,8 +86,8 @@ class QuartusBackend(FPGABackend):
     def gen_quartus_weight_array(self, layer):
         rf = layer.get_attr('reuse_factor')
         block_factor = int((layer.attributes['n_in']*layer.attributes['n_out'])/rf)
-        bf_rounded = int(pow(2, np.ceil(np.log(block_factor)/np.log(2))))
-        rf_rounded = int(pow(2, np.ceil(np.log(rf)/np.log(2))))
+        bf_rounded = int(pow(2, np.ceil(np.log2(block_factor))))
+        rf_rounded = int(pow(2, np.ceil(np.log2(rf))))
 
         layer.weights['weight'].data = np.transpose(layer.weights['weight'].data).flatten()
 
@@ -171,6 +171,14 @@ class QuartusBackend(FPGABackend):
         else:
             return 'ac_int<{width}, {signed}>'.format(width=width, signed='false' if not signed else 'true')
 
+    @layer_optimizer(Layer)
+    def init_base_layer(self, layer):
+        reuse_factor = layer.model.config.get_reuse_factor(layer)
+        layer.set_attr('reuse_factor', reuse_factor)
+
+        target_cycles = layer.model.config.get_target_cycles(layer)
+        layer.set_attr('target_cycles', target_cycles)
+
     @layer_optimizer(Dense)
     def init_dense(self, layer):
         index_t = IntegerPrecisionType(width=1, signed=False)
@@ -181,7 +189,7 @@ class QuartusBackend(FPGABackend):
         if layer.model.config.get_compression(layer):
             layer.set_attr('strategy', 'compressed')
         else:
-            self.set_closest_reuse_factor(layer)
+            self.set_closest_reuse_factor(layer, allow_one=True)
             self.gen_quartus_weight_array(layer)
             layer.set_attr('strategy', 'resource')
 

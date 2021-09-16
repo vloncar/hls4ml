@@ -43,7 +43,7 @@ class FPGABackend(Backend):
         
         return lib_name
 
-    def get_valid_reuse_factors(self, layer):
+    def get_valid_reuse_factors(self, layer, allow_one=False):
         n_in = 0
         n_out = 0
         if 'Dense' in layer.class_name:
@@ -63,7 +63,7 @@ class FPGABackend(Backend):
             if _assert:
                 valid_reuse_factors.append(rf)
         # Avoid using RF=1
-        if valid_reuse_factors[0] == 1:
+        if valid_reuse_factors[0] == 1 and not allow_one:
             valid_reuse_factors.pop(0)
         return valid_reuse_factors
 
@@ -99,8 +99,8 @@ class FPGABackend(Backend):
         else:
             return before
 
-    def set_closest_reuse_factor(self, layer):
-        valid_rf = self.get_valid_reuse_factors(layer)
+    def set_closest_reuse_factor(self, layer, allow_one=False):
+        valid_rf = self.get_valid_reuse_factors(layer, allow_one)
         chosen_rf = layer.get_attr('reuse_factor')
         if chosen_rf not in valid_rf:
             closest_rf = self.get_closest_reuse_factor(valid_rf, chosen_rf)
