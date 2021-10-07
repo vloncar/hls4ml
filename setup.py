@@ -38,6 +38,10 @@ setup(name='hls4ml',
             'pandas',
             'seaborn',
             'matplotlib'
+        ],
+        'quartus': [
+            'calmjs.parse',
+            'tabulate'
         ]
       },
       scripts=['scripts/hls4ml'],
