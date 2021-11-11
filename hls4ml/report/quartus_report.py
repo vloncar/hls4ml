@@ -149,9 +149,12 @@ def _find_reports(rpt_dir):
             with open(filename) as dataFile:
                 verification_data = dataFile.read()
                 verification_data = read_js_object(verification_data)
-            results['num_invocation'] = verification_data['verifJSON']['functions'][0]['data'][0]
-            results['Latency'] = verification_data['verifJSON']['functions'][0]['data'][1].split(",")
-            results['ii'] = verification_data['verifJSON']['functions'][0]['data'][2].split(",")
+            try:
+                results['num_invocation'] = verification_data['verifJSON']['functions'][0]['data'][0]
+                results['Latency'] = verification_data['verifJSON']['functions'][0]['data'][1].split(",")
+                results['ii'] = verification_data['verifJSON']['functions'][0]['data'][2].split(",")
+            except KeyError:
+                print("Was not able to parse verification file. Please open <project>/reports/report.html for more information.")
         else:
             print('Verification file not found. Run ./[projectname]-fpga to generate.')
 

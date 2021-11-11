@@ -2,7 +2,7 @@ DEVICE   := Arria10
 TARGETS  := myproject-fpga
 
 CXX          := i++
-CXXFLAGS     := $(USERCXXFLAGS) -Ifirmware/ap_types/ -march=$(DEVICE)#--quartus-compile
+CXXFLAGS     := $(USERCXXFLAGS) -march=$(DEVICE)#--quartus-compile
 RM           := rm -rf
 DEBUG_FLAGS  = --time $@_time.log -v
 SOURCE_FILES := myproject_test.cpp firmware/myproject.cpp
