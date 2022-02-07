@@ -121,6 +121,21 @@ def parse_default_keras_layer(keras_layer, input_names):
     if 'use_bias' in keras_layer['config']:
         layer['use_bias'] = keras_layer['config']['use_bias']
 
+    layer['hls4ml_config'] = parse_default_hls4ml_layer(keras_layer)
+
+    return layer
+
+def parse_default_hls4ml_layer(keras_layer):
+    layer = {}
+
+    if 'strategy' in keras_layer['config']:
+        layer['strategy'] = keras_layer['config']['strategy']
+
+    # All data types
+    for key in keras_layer['config'].keys():
+        if key.endswith('_t'):
+            layer[key] = keras_layer['config'][key]
+
     return layer
 
 def parse_data_format(input_shape, data_format='channels_last'):
