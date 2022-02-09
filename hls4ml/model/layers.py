@@ -678,7 +678,7 @@ class Activation(Layer):
 
 class ParametrizedActivation(Activation):
     def _get_act_function_name(self):
-        act = self.get_attr('activation').lower()
+        act = self.get_attr('activation')
         if act == 'leakyrelu':
             return 'leaky_relu'
         elif act == 'thresholdedrelu':

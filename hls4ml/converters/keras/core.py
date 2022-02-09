@@ -90,7 +90,7 @@ def parse_activation_layer(keras_layer, input_names, input_shapes, data_reader, 
     layer = parse_default_keras_layer(keras_layer, input_names)
 
     if layer['class_name'] != 'Activation':
-        layer['activation'] = layer['class_name']
+        layer['activation'] = layer['class_name'].lower()
     if layer['class_name'] == 'LeakyReLU':
         layer['activ_param'] = keras_layer['config'].get('alpha', 0.3)
     elif layer['class_name'] == 'ThresholdedReLU':

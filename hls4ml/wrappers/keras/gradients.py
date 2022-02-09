@@ -26,21 +26,21 @@ softmax_gradient = ops._gradient_registry.lookup('Softmax')
 
 _gradient_map = {
     # Layers
-    'Dense': dense_gradient,
+    'dense': dense_gradient,
     # Activations
-    'Relu': relu_gradient,
-    'LeakyRelu': leakyrelu_gradient,
-    'Elu': elu_gradient,
-    'Selu': selu_gradient,
-    'Sigmoid': sigmoid_gradient,
-    'Tanh': tanh_gradient,
-    'Softplus': softplus_gradient,
-    'Softsign': softsign_gradient,
-    'Softmax': softmax_gradient,
+    'relu': relu_gradient,
+    'leakyrelu': leakyrelu_gradient,
+    'elu': elu_gradient,
+    'selu': selu_gradient,
+    'sigmoid': sigmoid_gradient,
+    'tanh': tanh_gradient,
+    'softplus': softplus_gradient,
+    'softsign': softsign_gradient,
+    'softmax': softmax_gradient,
 }
 
 def register_gradient(wrapper_name, keras_class):
-    grad_func = _gradient_map.get(keras_class, None)
+    grad_func = _gradient_map.get(keras_class.lower(), None)
 
     if grad_func is None:
         raise Exception(f'Cannot register gradient for: {wrapper_name} ({keras_class}). No mathing gradient function found.')

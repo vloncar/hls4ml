@@ -122,6 +122,20 @@ class Softmax(L.Softmax):
         return dict(list(base_config.items()) + list(config.items()))
 
 class ReLU(L.ReLU):
+    @create_init(L.ReLU)
+    def __init__(self, table_t=None, table_size=None):
+        self.table_t = table_t
+        self.table_size = table_size
+
+    def get_config(self):
+        config = {
+            'table_t': self.table_t,
+            'table_size': self.table_size,
+        }
+        base_config = super(ReLU, self).get_config()
+        return dict(list(base_config.items()) + list(config.items()))
+
+class LeakyReLU(L.LeakyReLU):
     @create_init(L.LeakyReLU)
     def __init__(self, table_t=None, table_size=None):
         self.table_t = table_t
@@ -132,5 +146,5 @@ class ReLU(L.ReLU):
             'table_t': self.table_t,
             'table_size': self.table_size,
         }
-        base_config = super(Softmax, self).get_config()
+        base_config = super(LeakyReLU, self).get_config()
         return dict(list(base_config.items()) + list(config.items()))

@@ -1,6 +1,5 @@
 import json
 import tempfile
-import types
 import re
 
 from tensorflow.python.framework import load_library
@@ -19,13 +18,12 @@ class CustomOpWrapper(object):
 
         self.name = self.keras_layer.name
         self.op_keras_class = self.keras_layer.__class__.__name__
-        #TODO backend should have an attribute the python name of the op when loaded
-        self.op_func_name = re.sub(r'(?<!^)(?=[A-Z])', '_', self.hls_model.config.get_project_name()).lower() # HDense1 -> h_dense1
+        self.op_func_name = self._get_python_func_name(self.hls_model.config.get_project_name()) # HDense1 -> h_dense1
         self.op_lib_name = None
         self.op_func = None
 
         if self.act_model is not None:
-            self.act_func_name = re.sub(r'(?<!^)(?=[A-Z])', '_', self.act_model.config.get_project_name()).lower()
+            self.act_func_name = self._get_python_func_name(self.act_model.config.get_project_name())
             act = list(self.act_model.get_layers())[1].get_attr('activation')
             self.act_keras_class = ''.join(word.title() for word in act.split('_'))
         else:
@@ -57,6 +55,13 @@ class CustomOpWrapper(object):
             op_module = load_library.load_op_library(self.act_lib_name)
             self.act_func = op_module.__dict__[self.act_func_name]
 
+    def _get_python_func_name(self, cpp_name):
+        # Convert CamelCase to snake_case, where single capital letters aren't followed by an _
+        # as this seems to be the format that TF uses. For example, LeakyReLU -> leaky_re_lu
+        # instead of leaky_re_l_u
+        subbed = re.sub(r'(.)([A-Z][a-z]+)', r'\1_\2', cpp_name)
+        return re.sub('([a-z0-9])([A-Z])', r'\1_\2', subbed).lower()
+
     def _make_init_func(self):
         def init_func(new_self, *args, **kwargs):
             super(new_self.__class__, new_self).__init__(*args, **kwargs)
@@ -69,7 +74,7 @@ class CustomOpWrapper(object):
         # Note to future self: It may seem more intuitive to just patch the call() function
         # of the original layer, but this will not work. The layers may get built as they are added
         # (e.g., in Sequential model) and TF's AutoGraph won't like it when the ops are switched.
-        # Unfortunately, there is no easy way to force a rebuild fo the model, the related internal
+        # Unfortunately, there is no easy way to force a rebuild of the model, the related internal
         # functions make an effort not to rebuild. Instead we create wrappers around existing layer
         # classes with new call functions and replace the original layers in the model with the wrappers.
 
@@ -202,7 +207,8 @@ def _parse_model(keras_model, output_dir=None):
         output_shapes[keras_name] = output_shape
 
         assert layer['name'] == keras_name
-        assert layer['class_name'] == keras_class
+        if layer['class_name'] != 'Activation':
+            assert layer['class_name'] == keras_class
 
         if keras_class != 'InputLayer' and len(layer_list) == 0:
             input_layer = _create_input_layer(input_shapes[0], 'input' + str(layer_counter))
