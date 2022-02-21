@@ -103,6 +103,27 @@ class Dense(L.Dense):
         base_config = super(Dense, self).get_config()
         return dict(list(base_config.items()) + list(config.items()))
 
+class BatchNormalization(L.BatchNormalization):
+
+    @create_init(L.BatchNormalization)
+    def __init__(self, scale_t=None, bias_t=None, result_t=None):
+        self.scale_t = scale_t
+        self.bias_t = bias_t
+        self.result_t = result_t
+        assert self.renorm == False
+        assert self.virtual_batch_size == None
+        assert self.adjustment == None
+        self.fused = False
+
+    def get_config(self):
+        config = {
+            'scale_t': self.scale_t,
+            'bias_t': self.bias_t,
+            'result_t': self.result_t,
+        }
+        base_config = super(BatchNormalization, self).get_config()
+        return dict(list(base_config.items()) + list(config.items()))
+
 # Activations
 
 class Softmax(L.Softmax):

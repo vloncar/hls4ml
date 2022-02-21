@@ -14,6 +14,30 @@ def dense_gradient(op, grad):
 
     return grad_i, grad_w, grad_b
 
+def bn_gradient(op, grad):
+    x = op.inputs[0]
+    grad_y = grad
+    gamma = op.inputs[1]
+    mean = op.inputs[3]
+    variance = op.inputs[4]
+    epsilon = op.get_attr("epsilon")
+    is_training = op.get_attr("is_training")
+
+    #TODO Handle 3D/4D/5D input with different data format based on the implementation from _BatchNormGrad (in nn_grad.py)
+
+    if is_training:
+        grad_x = gamma * math_ops.rsqrt(math_ops.reduce_variance(x) + epsilon) * \
+            (grad_y - math_ops.reduce_mean(grad_y) - (x - math_ops.reduce_mean(x)) * \
+            math_ops.reduce_mean(grad_y * (x - math_ops.reduce_mean(x))) / (math_ops.reduce_variance(x) + epsilon))
+        grad_gamma = math_ops.reduce_sum(grad_y * (x - math_ops.reduce_mean(x)) * math_ops.rsqrt(math_ops.reduce_variance(x) + epsilon), axis=0)
+    else:
+        grad_x = grad_y * gamma * math_ops.rsqrt(variance + epsilon)
+        grad_gamma = math_ops.reduce_sum(grad_y * (x - mean) * math_ops.rsqrt(variance + epsilon), axis=0)
+
+    grad_beta = math_ops.reduce_sum(grad_y, axis=0)
+    
+    return grad_x, grad_gamma, grad_beta, None, None
+
 relu_gradient = ops._gradient_registry.lookup('Relu')
 leakyrelu_gradient = ops._gradient_registry.lookup('LeakyRelu')
 selu_gradient = ops._gradient_registry.lookup('Selu')
@@ -27,6 +51,7 @@ softmax_gradient = ops._gradient_registry.lookup('Softmax')
 _gradient_map = {
     # Layers
     'dense': dense_gradient,
+    'batchnormalization': bn_gradient,
     # Activations
     'relu': relu_gradient,
     'leakyrelu': leakyrelu_gradient,
