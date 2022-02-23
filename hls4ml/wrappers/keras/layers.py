@@ -1,6 +1,6 @@
 import inspect
 import types
-from typing import OrderedDict
+from collections import OrderedDict
 
 from tensorflow.keras import layers as L
 from tensorflow.keras import Input
