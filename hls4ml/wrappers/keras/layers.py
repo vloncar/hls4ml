@@ -169,3 +169,20 @@ class LeakyReLU(L.LeakyReLU):
         }
         base_config = super(LeakyReLU, self).get_config()
         return dict(list(base_config.items()) + list(config.items()))
+
+
+# Reshaping layers
+
+class Flatten(L.Flatten):
+    def __init__(self, data_format=None, **kwargs):
+        super(Flatten, self).__init__(data_format=data_format, **kwargs)
+        assert self.data_format == 'channels_last'
+
+class Reshape(L.Reshape):
+    pass
+
+class UpSampling2D(L.UpSampling2D):
+    def __init__(self, size=(2, 2), data_format=None, interpolation='nearest', **kwargs):
+        super(UpSampling2D, self).__init__(size=size, data_format=data_format, interpolation=interpolation)
+        assert self.data_format == 'channels_last'
+        assert self.interpolation == 'nearest'

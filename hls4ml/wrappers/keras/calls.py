@@ -103,10 +103,13 @@ def call_batchnorm(self, inputs, training=None):
     outputs.set_shape(input_shape)
     return outputs
 
+def call_upsampling2d(self, inputs):
+    return self.op_func(inputs, factor=self.size)
 
 _call_map = {
     'dense': call_dense,
     'batchnormalization': call_batchnorm,
+    'upsampling2d': call_upsampling2d,
     'relu': call_activation,
     'leakyrelu': call_param_activation,
     'softmax': call_activation,

@@ -1,6 +1,7 @@
 import json
 import tempfile
 import re
+import difflib
 
 from tensorflow.python.framework import load_library
 
@@ -18,17 +19,16 @@ class CustomOpWrapper(object):
 
         self.name = self.keras_layer.name
         self.op_keras_class = self.keras_layer.__class__.__name__
-        self.op_func_name = self._get_python_func_name(self.hls_model.config.get_project_name()) # HDense1 -> h_dense1
+        self.op_func_name = None
         self.op_lib_name = None
         self.op_func = None
 
         if self.act_model is not None:
-            self.act_func_name = self._get_python_func_name(self.act_model.config.get_project_name())
             act = list(self.act_model.get_layers())[1].get_attr('activation')
             self.act_keras_class = ''.join(word.title() for word in act.split('_'))
         else:
-            self.act_func_name = None
             self.act_keras_class = None
+        self.act_func_name = None
         self.act_lib_name = None
         self.act_func = None
 
@@ -49,10 +49,12 @@ class CustomOpWrapper(object):
             raise Exception('Custom op must be compiled first with `compile()`.')
 
         op_module = load_library.load_op_library(self.op_lib_name)
+        self.op_func_name = self._find_func_name(op_module.__dict__.keys(), self.hls_model.config.get_project_name())
         self.op_func = op_module.__dict__[self.op_func_name]
 
         if self.act_lib_name is not None:
             op_module = load_library.load_op_library(self.act_lib_name)
+            self.act_func_name = self._find_func_name(op_module.__dict__.keys(), self.act_model.config.get_project_name())
             self.act_func = op_module.__dict__[self.act_func_name]
 
     def _get_python_func_name(self, cpp_name):
@@ -61,6 +63,22 @@ class CustomOpWrapper(object):
         # instead of leaky_re_l_u
         subbed = re.sub(r'(.)([A-Z][a-z]+)', r'\1_\2', cpp_name)
         return re.sub('([a-z0-9])([A-Z])', r'\1_\2', subbed).lower()
+
+    def _find_func_name(self, module_attrs, project_name):
+        func_name = self._get_python_func_name(project_name) # HDense1 -> h_dense1
+
+        # Since the CamelCase to snake_case conversion is not perfect, search the attributes for a
+        #  function most similar to our snake_case. It would be great if TF provided a function for this.
+        ratio = 0
+        matched_name = None
+        
+        for attr in module_attrs:
+            new_ratio = difflib.SequenceMatcher(None, attr, func_name).ratio()
+            if new_ratio > ratio:
+                matched_name = attr
+                ratio = new_ratio
+
+        return matched_name
 
     def _make_init_func(self):
         def init_func(new_self, *args, **kwargs):
@@ -135,6 +153,9 @@ def _parse_model(keras_model, output_dir=None):
     #Define layers to skip for conversion to HLS
     skip_layers = ['Dropout']
 
+    # Layers to skip wrapping
+    skip_wrappers = ['Reshape']
+
     #Map inputs of skipped and split (activation) layers
     inputs_map = {}
 
@@ -207,8 +228,6 @@ def _parse_model(keras_model, output_dir=None):
         output_shapes[keras_name] = output_shape
 
         assert layer['name'] == keras_name
-        if layer['class_name'] != 'Activation':
-            assert layer['class_name'] == keras_class
 
         if keras_class != 'InputLayer' and len(layer_list) == 0:
             input_layer = _create_input_layer(input_shapes[0], 'input' + str(layer_counter))
@@ -235,8 +254,9 @@ def _parse_model(keras_model, output_dir=None):
                 keras_name: layer_hls4ml_config
             }
 
-            hls_model = ModelGraph(config, reader, layer_list)
-            hls_model_counter += 1
+            if layer_list[1]['class_name'] not in skip_wrappers:
+                hls_model = ModelGraph(config, reader, layer_list)
+                hls_model_counter += 1
 
             # Reset the layer list
             layer_list = []
@@ -300,11 +320,8 @@ def _build_layers(op_wrappers):
 
     return new_layers
 
-def _rebuild_model(model, rebuilt_layers):
-    return model.rebuild(rebuilt_layers)
-
 def compile_model(model, output_dir=None):
     op_wrappers = _parse_model(model, output_dir=output_dir)
     _compile_ops(op_wrappers)
     new_layers = _build_layers(op_wrappers)
-    return _rebuild_model(model, new_layers)
+    return model.rebuild(new_layers)

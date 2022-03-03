@@ -29,7 +29,7 @@ def parse_reshape_layer(keras_layer, input_names, input_shapes, data_reader, con
 
 
 @keras_handler('UpSampling2D')
-def parse_conv2d_layer(keras_layer, input_names, input_shapes, data_reader, config):
+def parse_upsampling2d_layer(keras_layer, input_names, input_shapes, data_reader, config):
     assert('UpSampling2D' in keras_layer['class_name'])
 
     layer = parse_default_keras_layer(keras_layer, input_names)

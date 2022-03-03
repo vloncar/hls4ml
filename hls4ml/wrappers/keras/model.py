@@ -56,7 +56,12 @@ class Sequential(K.Sequential):
                     break
                 if isinstance(old_layer, K.layers.InputLayer):
                     continue
-                new_layer = rebuilt_layers[old_layer.name].from_config(config)
+                if old_layer.name in rebuilt_layers:
+                    # Create the new wrapped layer instance based on the config
+                    new_layer = rebuilt_layers[old_layer.name].from_config(config)
+                else:
+                    # Or non-wrapped instance iw we skip wrapping
+                    new_layer = old_layer.__class__.from_config(config)
                 new_layers.append(new_layer)
             else:
                 break

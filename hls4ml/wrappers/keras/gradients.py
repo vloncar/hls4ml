@@ -38,6 +38,12 @@ def bn_gradient(op, grad):
     
     return grad_x, grad_gamma, grad_beta, None, None
 
+def upsampling2d_gradient(op, grad):
+    #TODO Handle half_pixel_centers=True for nearest neighbor implementation
+    return tf_reshape_gradient(op, grad)
+
+tf_reshape_gradient = ops._gradient_registry.lookup('Reshape')
+
 relu_gradient = ops._gradient_registry.lookup('Relu')
 leakyrelu_gradient = ops._gradient_registry.lookup('LeakyRelu')
 selu_gradient = ops._gradient_registry.lookup('Selu')
@@ -52,6 +58,7 @@ _gradient_map = {
     # Layers
     'dense': dense_gradient,
     'batchnormalization': bn_gradient,
+    'upsampling2d': upsampling2d_gradient,
     # Activations
     'relu': relu_gradient,
     'leakyrelu': leakyrelu_gradient,
