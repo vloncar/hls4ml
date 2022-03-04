@@ -47,7 +47,7 @@ def create_init(base_cls):
             else:
                 super_str.append(f'{param_name}')
 
-        class_name = base_cls.__name__
+        class_name = base_cls.__name__ # TODO A check should exist to make sure this matches the name of the wrapper
 
         init_src[0] = ' ' * def_indent + 'def __init__(' + ', '.join(param_str) + '):'
         super_src = ' ' * src_indent + f'super({class_name}, self).__init__(' + ', '.join(super_str) + ')'
@@ -71,7 +71,7 @@ def create_init(base_cls):
                 defaults.append(None)
 
         # This is a bit weird, but we need to pass a different handle to the CodeType contained
-        # within the `code` object, so let's get it's index (usually it's '2'). 
+        # within the `code` object, so let's get it's index (usually it's '2').
         code_ptr = 0
         for i, obj in enumerate(code.co_consts):
             if isinstance(obj, types.CodeType):
@@ -83,14 +83,14 @@ def create_init(base_cls):
     return unified_init
 
 class Dense(L.Dense):
-
     @create_init(L.Dense)
-    def __init__(self, strategy='latency', weight_t=None, bias_t=None, result_t=None, accum_t=None):
+    def __init__(self, strategy='latency', weight_t=None, bias_t=None, result_t=None, accum_t=None, skip_wrapping=False):
         self.strategy = strategy
         self.weight_t = weight_t
         self.bias_t = bias_t
         self.result_t = result_t
         self.accum_t = accum_t
+        self.skip_wrapping = skip_wrapping
 
     def get_config(self):
         config = {
@@ -99,14 +99,14 @@ class Dense(L.Dense):
             'bias_t': self.bias_t,
             'result_t': self.result_t,
             'accum_t': self.accum_t,
+            'skip_wrapping': self.skip_wrapping,
         }
         base_config = super(Dense, self).get_config()
         return dict(list(base_config.items()) + list(config.items()))
 
 class BatchNormalization(L.BatchNormalization):
-
     @create_init(L.BatchNormalization)
-    def __init__(self, scale_t=None, bias_t=None, result_t=None):
+    def __init__(self, scale_t=None, bias_t=None, result_t=None, skip_wrapping=False):
         self.scale_t = scale_t
         self.bias_t = bias_t
         self.result_t = result_t
@@ -114,12 +114,14 @@ class BatchNormalization(L.BatchNormalization):
         assert self.virtual_batch_size == None
         assert self.adjustment == None
         self.fused = False
+        self.skip_wrapping = skip_wrapping
 
     def get_config(self):
         config = {
             'scale_t': self.scale_t,
             'bias_t': self.bias_t,
             'result_t': self.result_t,
+            'skip_wrapping': self.skip_wrapping,
         }
         base_config = super(BatchNormalization, self).get_config()
         return dict(list(base_config.items()) + list(config.items()))
@@ -127,45 +129,51 @@ class BatchNormalization(L.BatchNormalization):
 # Activations
 
 class Softmax(L.Softmax):
-    def __init__(self, axis=-1, strategy='latency', exp_table_t=None, inv_table_t=None, **kwargs):
-        super().__init__(axis=axis, **kwargs)
+    @create_init(L.Softmax)
+    def __init__(self, strategy='latency', exp_table_t=None, inv_table_t=None, skip_wrapping=False):
         self.strategy = strategy
         self.exp_table_t = exp_table_t
         self.inv_table_t = inv_table_t
+        self.skip_wrapping = skip_wrapping
 
     def get_config(self):
         config = {
             'strategy': self.strategy,
             'exp_table_t': self.exp_table_t,
             'inv_table_t': self.inv_table_t,
+            'skip_wrapping': self.skip_wrapping,
         }
         base_config = super(Softmax, self).get_config()
         return dict(list(base_config.items()) + list(config.items()))
 
 class ReLU(L.ReLU):
     @create_init(L.ReLU)
-    def __init__(self, table_t=None, table_size=None):
+    def __init__(self, table_t=None, table_size=None, skip_wrapping=False):
         self.table_t = table_t
         self.table_size = table_size
+        self.skip_wrapping = skip_wrapping
 
     def get_config(self):
         config = {
             'table_t': self.table_t,
             'table_size': self.table_size,
+            'skip_wrapping': self.skip_wrapping,
         }
         base_config = super(ReLU, self).get_config()
         return dict(list(base_config.items()) + list(config.items()))
 
 class LeakyReLU(L.LeakyReLU):
     @create_init(L.LeakyReLU)
-    def __init__(self, table_t=None, table_size=None):
+    def __init__(self, table_t=None, table_size=None, skip_wrapping=False):
         self.table_t = table_t
         self.table_size = table_size
+        self.skip_wrapping = skip_wrapping
 
     def get_config(self):
         config = {
             'table_t': self.table_t,
             'table_size': self.table_size,
+            'skip_wrapping': self.skip_wrapping,
         }
         base_config = super(LeakyReLU, self).get_config()
         return dict(list(base_config.items()) + list(config.items()))
@@ -174,15 +182,31 @@ class LeakyReLU(L.LeakyReLU):
 # Reshaping layers
 
 class Flatten(L.Flatten):
-    def __init__(self, data_format=None, **kwargs):
-        super(Flatten, self).__init__(data_format=data_format, **kwargs)
+    @create_init(L.Flatten)
+    def __init__(self, skip_wrapping=False):
+        self.skip_wrapping = skip_wrapping
         assert self.data_format == 'channels_last'
+
+    def get_config(self):
+        config = {
+            'skip_wrapping': self.skip_wrapping,
+        }
+        base_config = super(Flatten, self).get_config()
+        return dict(list(base_config.items()) + list(config.items()))
 
 class Reshape(L.Reshape):
     pass
 
 class UpSampling2D(L.UpSampling2D):
-    def __init__(self, size=(2, 2), data_format=None, interpolation='nearest', **kwargs):
-        super(UpSampling2D, self).__init__(size=size, data_format=data_format, interpolation=interpolation)
+    @create_init(L.UpSampling2D)
+    def __init__(self, skip_wrapping=False):
+        self.skip_wrapping = skip_wrapping
         assert self.data_format == 'channels_last'
         assert self.interpolation == 'nearest'
+
+    def get_config(self):
+        config = {
+            'skip_wrapping': self.skip_wrapping,
+        }
+        base_config = super(UpSampling2D, self).get_config()
+        return dict(list(base_config.items()) + list(config.items()))

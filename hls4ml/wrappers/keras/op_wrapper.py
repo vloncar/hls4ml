@@ -254,7 +254,7 @@ def _parse_model(keras_model, output_dir=None):
                 keras_name: layer_hls4ml_config
             }
 
-            if layer_list[1]['class_name'] not in skip_wrappers:
+            if layer_list[1]['class_name'] not in skip_wrappers and not keras_layer['config'].get('skip_wrapping', False):
                 hls_model = ModelGraph(config, reader, layer_list)
                 hls_model_counter += 1
 
