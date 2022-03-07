@@ -210,3 +210,16 @@ class UpSampling2D(L.UpSampling2D):
         }
         base_config = super(UpSampling2D, self).get_config()
         return dict(list(base_config.items()) + list(config.items()))
+
+class ZeroPadding2D(L.ZeroPadding2D):
+    @create_init(L.ZeroPadding2D)
+    def __init__(self, skip_wrapping=False):
+        self.skip_wrapping = skip_wrapping
+        assert self.data_format == 'channels_last'
+
+    def get_config(self):
+        config = {
+            'skip_wrapping': self.skip_wrapping,
+        }
+        base_config = super(ZeroPadding2D, self).get_config()
+        return dict(list(base_config.items()) + list(config.items()))

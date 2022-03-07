@@ -42,8 +42,11 @@ def upsampling2d_gradient(op, grad):
     #TODO Handle half_pixel_centers=True for nearest neighbor implementation
     return tf_reshape_gradient(op, grad)
 
-tf_reshape_gradient = ops._gradient_registry.lookup('Reshape')
+def zeropadding2d_gradient(op, grad):
+    return tf_pad_gradient(op, grad)
 
+tf_reshape_gradient = ops._gradient_registry.lookup('Reshape')
+tf_pad_gradient = ops._gradient_registry.lookup('Pad')
 relu_gradient = ops._gradient_registry.lookup('Relu')
 leakyrelu_gradient = ops._gradient_registry.lookup('LeakyRelu')
 selu_gradient = ops._gradient_registry.lookup('Selu')
@@ -59,6 +62,7 @@ _gradient_map = {
     'dense': dense_gradient,
     'batchnormalization': bn_gradient,
     'upsampling2d': upsampling2d_gradient,
+    'zeropadding2d': zeropadding2d_gradient,
     # Activations
     'relu': relu_gradient,
     'leakyrelu': leakyrelu_gradient,

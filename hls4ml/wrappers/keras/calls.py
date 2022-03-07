@@ -106,10 +106,15 @@ def call_batchnorm(self, inputs, training=None):
 def call_upsampling2d(self, inputs):
     return self.op_func(inputs, factor=self.size)
 
+def call_zeropadding2d(self, inputs):
+    pad_pattern = [[0, 0], list(self.padding[0]), list(self.padding[1]), [0, 0]]
+    return self.op_func(inputs, pad_pattern)
+
 _call_map = {
     'dense': call_dense,
     'batchnormalization': call_batchnorm,
     'upsampling2d': call_upsampling2d,
+    'zeropadding2d': call_zeropadding2d,
     'relu': call_activation,
     'leakyrelu': call_param_activation,
     'softmax': call_activation,
