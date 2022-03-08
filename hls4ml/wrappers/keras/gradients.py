@@ -45,6 +45,8 @@ def upsampling2d_gradient(op, grad):
 def zeropadding2d_gradient(op, grad):
     return tf_pad_gradient(op, grad)
 
+maxpool_gradient = ops._gradient_registry.lookup('MaxPool')
+avgpool_gradient = ops._gradient_registry.lookup('AvgPool')
 tf_reshape_gradient = ops._gradient_registry.lookup('Reshape')
 tf_pad_gradient = ops._gradient_registry.lookup('Pad')
 relu_gradient = ops._gradient_registry.lookup('Relu')
@@ -61,6 +63,8 @@ _gradient_map = {
     # Layers
     'dense': dense_gradient,
     'batchnormalization': bn_gradient,
+    'maxpooling2d': maxpool_gradient,
+    'averagepooling2d': avgpool_gradient,
     'upsampling2d': upsampling2d_gradient,
     'zeropadding2d': zeropadding2d_gradient,
     # Activations

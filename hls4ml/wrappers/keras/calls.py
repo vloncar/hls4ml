@@ -5,7 +5,7 @@ def call_dense(self, inputs):
     outputs = self.op_func(inputs, self.kernel, self.bias)
     if self.act_func is not None:
         outputs = self.act_func(outputs)
-    
+
     return outputs
 
 def call_activation(self, inputs):
@@ -53,37 +53,37 @@ def call_batchnorm(self, inputs, training=None):
             tf.cast(inputs, self._param_dtype),
             reduction_axes,
             keep_dims=keep_dims)
-  
+
         mean = control_flow_util.smart_cond(training,
             lambda: mean,
             lambda: tf.convert_to_tensor(self.moving_mean))
         variance = control_flow_util.smart_cond(training,
             lambda: variance,
             lambda: tf.convert_to_tensor(self.moving_variance))
-  
+
         new_mean, new_variance = mean, variance
-  
+
         if self._support_zero_size_input():
             # Keras assumes that batch dimension is the first dimension for Batch Normalization.
             input_batch_size = tf.shape(inputs)[0]
         else:
             input_batch_size = None
-  
+
         def _do_update(var, value):
             """Compute the updates for mean and variance."""
             return self._assign_moving_average(var, value, self.momentum, input_batch_size)
-  
+
         def mean_update():
             true_branch = lambda: _do_update(self.moving_mean, new_mean)
             false_branch = lambda: self.moving_mean
             return control_flow_util.smart_cond(training, true_branch, false_branch)
-  
+
         def variance_update():
             """Update the moving variance."""
             true_branch = lambda: _do_update(self.moving_variance, new_variance)
             false_branch = lambda: self.moving_variance
             return control_flow_util.smart_cond(training, true_branch, false_branch)
-  
+
         self.add_update(mean_update)
         self.add_update(variance_update)
 
@@ -93,14 +93,27 @@ def call_batchnorm(self, inputs, training=None):
         offset = tf.cast(offset, inputs.dtype)
     if scale is not None:
         scale = tf.cast(scale, inputs.dtype)
-    
+
     outputs = self.op_func(inputs, scale, offset, _broadcast(mean), _broadcast(variance), epsilon=self.epsilon, is_training=training)
-    
+
     if inputs_dtype in (tf.float16, tf.bfloat16):
         outputs = tf.cast(outputs, inputs_dtype)
 
     # If some components of the shape got lost due to adjustments, fix that.
     outputs.set_shape(input_shape)
+    return outputs
+
+def call_pool2d(self, inputs):
+    pool_shape = (1,) + self.pool_size + (1,)
+    strides = (1,) + self.strides + (1,)
+
+    outputs = self.op_func(
+        inputs,
+        ksize=list(pool_shape),
+        strides=list(strides),
+        padding=self.padding.upper(),
+        explicit_paddings=[],
+        data_format='NHWC')
     return outputs
 
 def call_upsampling2d(self, inputs):
@@ -113,6 +126,8 @@ def call_zeropadding2d(self, inputs):
 _call_map = {
     'dense': call_dense,
     'batchnormalization': call_batchnorm,
+    'maxpooling2d': call_pool2d,
+    'averagepooling2d': call_pool2d,
     'upsampling2d': call_upsampling2d,
     'zeropadding2d': call_zeropadding2d,
     'relu': call_activation,

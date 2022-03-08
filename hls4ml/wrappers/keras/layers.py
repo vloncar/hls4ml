@@ -82,6 +82,8 @@ def create_init(base_cls):
 
     return unified_init
 
+#region Core layers
+
 class Dense(L.Dense):
     @create_init(L.Dense)
     def __init__(self, strategy='latency', weight_t=None, bias_t=None, result_t=None, accum_t=None, skip_wrapping=False):
@@ -126,7 +128,56 @@ class BatchNormalization(L.BatchNormalization):
         base_config = super(BatchNormalization, self).get_config()
         return dict(list(base_config.items()) + list(config.items()))
 
-# Activations
+#endregion
+
+#region Pooling layers
+
+class MaxPooling2D(L.MaxPooling2D):
+    @create_init(L.MaxPooling2D)
+    def __init__(self, implementation=None, result_t=None, accum_t=None, skip_wrapping=False):
+        self.implementation = implementation
+        self.result_t = result_t
+        self.accum_t = accum_t
+        self.skip_wrapping = skip_wrapping
+
+        assert self.data_format == 'channels_last'
+
+    def get_config(self):
+        config = {
+            'implementation': self.implementation,
+            'result_t': self.result_t,
+            'accum_t': self.accum_t,
+            'skip_wrapping': self.skip_wrapping,
+        }
+        base_config = super(MaxPooling2D, self).get_config()
+        return dict(list(base_config.items()) + list(config.items()))
+
+class AveragePooling2D(L.AveragePooling2D):
+    @create_init(L.AveragePooling2D)
+    def __init__(self, implementation=None, result_t=None, accum_t=None, skip_wrapping=False):
+        self.implementation = implementation
+        self.result_t = result_t
+        self.accum_t = accum_t
+        self.skip_wrapping = skip_wrapping
+
+        assert self.data_format == 'channels_last'
+
+    def get_config(self):
+        config = {
+            'implementation': self.implementation,
+            'result_t': self.result_t,
+            'accum_t': self.accum_t,
+            'skip_wrapping': self.skip_wrapping,
+        }
+        base_config = super(AveragePooling2D, self).get_config()
+        return dict(list(base_config.items()) + list(config.items()))
+
+MaxPool2D = MaxPooling2D
+AvgPool2D = AveragePooling2D
+
+#endregion
+
+#region Activations
 
 class Softmax(L.Softmax):
     @create_init(L.Softmax)
@@ -178,8 +229,9 @@ class LeakyReLU(L.LeakyReLU):
         base_config = super(LeakyReLU, self).get_config()
         return dict(list(base_config.items()) + list(config.items()))
 
+#endregion
 
-# Reshaping layers
+#region Reshaping layers
 
 class Flatten(L.Flatten):
     @create_init(L.Flatten)
@@ -223,3 +275,5 @@ class ZeroPadding2D(L.ZeroPadding2D):
         }
         base_config = super(ZeroPadding2D, self).get_config()
         return dict(list(base_config.items()) + list(config.items()))
+
+#endregion
