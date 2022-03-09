@@ -59,7 +59,12 @@ class VivadoTrainWriter(VivadoWriter):
                 # Extract config name
                 config_cpp = main_layer.get_attr('config_cpp', None)
                 if config_cpp is not None:
-                    config_name = config_cpp.split(':')[0].replace('struct', '').strip()
+                    # Note to self: Remember that time you decided that layer's config pattern is 'config{index}' but
+                    # activation's pattern is 'activ_config{index}'? Yeah, not the stroke of a genius there. 
+                    # Because of that decision we have this complex parsing, where we need to get the right config
+                    # (there can be multiple ones in a single layer!) and we need to extract the name from the last one.
+                    structs = list(filter(lambda x: x.startswith('struct '), config_cpp.split('\n')))
+                    config_name = structs[-1].split(':')[0].replace('struct', '').strip()
                     newline = f'typedef {config_name} hconfig;\n'
                 else:
                     newline = ''

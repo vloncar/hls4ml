@@ -32,7 +32,7 @@ class HSoftmaxOp : public OpKernel {
         explicit HSoftmaxOp(OpKernelConstruction* context) : OpKernel(context) {}
 
         void Compute(OpKernelContext* context) override {
-            // Grab the input tensor
+            // Get the input tensor
             const Tensor& input_tensor = context->input(0);
             auto data = input_tensor.flat<float>().data();
 

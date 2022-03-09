@@ -21,6 +21,7 @@ class VivadoTrainBackend(VivadoBackend):
 
         required_flows = [
             'vivado:init_layers',
+            'vivado:specific_types',
             'vivado:apply_templates'
         ]
         self._default_flow = register_flow('generate_ops', None, requires=required_flows, backend=self.name)

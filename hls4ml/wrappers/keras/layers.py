@@ -94,6 +94,8 @@ class Dense(L.Dense):
         self.accum_t = accum_t
         self.skip_wrapping = skip_wrapping
 
+        assert self.use_bias == True
+
     def get_config(self):
         config = {
             'strategy': self.strategy,
@@ -127,6 +129,27 @@ class BatchNormalization(L.BatchNormalization):
         }
         base_config = super(BatchNormalization, self).get_config()
         return dict(list(base_config.items()) + list(config.items()))
+
+#endregion
+
+#region Convolutional layers
+
+class Conv2D(L.Conv2D):
+    @create_init(L.Conv2D)
+    def __init__(self, strategy='latency', implementation=None, weight_t=None, bias_t=None, result_t=None, accum_t=None, skip_wrapping=False):
+        self.strategy = strategy
+        self.implementation = implementation
+        self.weight_t = weight_t
+        self.bias_t = bias_t
+        self.result_t = result_t
+        self.accum_t = accum_t
+        self.skip_wrapping = skip_wrapping
+
+        assert self.data_format == 'channels_last'
+        assert self.use_bias == True
+        assert self.groups == 1
+        assert self.dilation_rate == (1, 1)
+        #TODO padding='same' will trip this up if using io_stream
 
 #endregion
 

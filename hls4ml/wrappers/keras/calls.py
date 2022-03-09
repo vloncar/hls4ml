@@ -103,6 +103,23 @@ def call_batchnorm(self, inputs, training=None):
     outputs.set_shape(input_shape)
     return outputs
 
+def call_conv2d(self, inputs):
+    input_shape = inputs.shape
+
+    outputs = self.op_func(
+        inputs,
+        self.kernel,
+        self.bias,
+        strides=list((1,) + self.strides + (1,)),
+        padding=self.padding.upper(),
+        dilations=list((1,) + self.dilation_rate + (1,)),
+        data_format='NHWC')
+
+    if self.act_func is not None:
+        outputs = self.act_func(outputs)
+
+    return outputs
+
 def call_pool2d(self, inputs):
     pool_shape = (1,) + self.pool_size + (1,)
     strides = (1,) + self.strides + (1,)
@@ -126,6 +143,7 @@ def call_zeropadding2d(self, inputs):
 _call_map = {
     'dense': call_dense,
     'batchnormalization': call_batchnorm,
+    'conv2d': call_conv2d,
     'maxpooling2d': call_pool2d,
     'averagepooling2d': call_pool2d,
     'upsampling2d': call_upsampling2d,

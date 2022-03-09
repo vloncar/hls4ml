@@ -38,6 +38,12 @@ def bn_gradient(op, grad):
     
     return grad_x, grad_gamma, grad_beta, None, None
 
+def conv2d_gradient(op, grad):
+    grad_i, grad_w = tf_conv2d_gradient(op, grad)
+    grad_b = gen_nn_ops.bias_add_grad(out_backprop=grad, data_format='NHWC')
+
+    return grad_i, grad_w, grad_b
+
 def upsampling2d_gradient(op, grad):
     #TODO Handle half_pixel_centers=True for nearest neighbor implementation
     return tf_reshape_gradient(op, grad)
@@ -45,6 +51,7 @@ def upsampling2d_gradient(op, grad):
 def zeropadding2d_gradient(op, grad):
     return tf_pad_gradient(op, grad)
 
+tf_conv2d_gradient = ops._gradient_registry.lookup('Conv2D')
 maxpool_gradient = ops._gradient_registry.lookup('MaxPool')
 avgpool_gradient = ops._gradient_registry.lookup('AvgPool')
 tf_reshape_gradient = ops._gradient_registry.lookup('Reshape')
@@ -63,6 +70,7 @@ _gradient_map = {
     # Layers
     'dense': dense_gradient,
     'batchnormalization': bn_gradient,
+    'conv2d': conv2d_gradient,
     'maxpooling2d': maxpool_gradient,
     'averagepooling2d': avgpool_gradient,
     'upsampling2d': upsampling2d_gradient,

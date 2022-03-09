@@ -35,7 +35,7 @@ class HBatchNormalizationOp : public OpKernel {
         }
 
         void Compute(OpKernelContext* context) override {
-            // Grab the input tensor
+            // Get the input tensors (input, gamma, beta, mean, variance)
             const Tensor& input_tensor = context->input(0);
             const Tensor& gamma_tensor = context->input(1);
             const Tensor& beta_tensor = context->input(2);

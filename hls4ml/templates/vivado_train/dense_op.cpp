@@ -32,7 +32,7 @@ class HDenseOp : public OpKernel {
         explicit HDenseOp(OpKernelConstruction* context) : OpKernel(context) {}
 
         void Compute(OpKernelContext* context) override {
-            // Grab the input tensor
+            // Get the input tensors (input, weights & bias)
             const Tensor& input_tensor = context->input(0);
             const Tensor& weight_tensor = context->input(1);
             const Tensor& bias_tensor = context->input(2);
