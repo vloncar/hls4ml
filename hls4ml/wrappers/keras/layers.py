@@ -151,6 +151,19 @@ class Conv2D(L.Conv2D):
         assert self.dilation_rate == (1, 1)
         #TODO padding='same' will trip this up if using io_stream
 
+    def get_config(self):
+        config = {
+            'strategy': self.strategy,
+            'implementation': self.implementation,
+            'weight_t': self.weight_t,
+            'bias_t': self.bias_t,
+            'result_t': self.result_t,
+            'accum_t': self.accum_t,
+            'skip_wrapping': self.skip_wrapping,
+        }
+        base_config = super(Conv2D, self).get_config()
+        return dict(list(base_config.items()) + list(config.items()))
+
 #endregion
 
 #region Pooling layers
