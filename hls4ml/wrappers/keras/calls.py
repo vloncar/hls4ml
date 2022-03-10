@@ -1,5 +1,5 @@
 import tensorflow as tf
-from keras.utils import control_flow_util
+from tensorflow.python.keras.utils import control_flow_util
 
 def call_dense(self, inputs):
     outputs = self.op_func(inputs, self.kernel, self.bias)
