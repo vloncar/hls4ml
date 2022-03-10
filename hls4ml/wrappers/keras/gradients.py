@@ -1,4 +1,6 @@
 from tensorflow.python.framework import ops
+from tensorflow.python.ops import array_ops
+from tensorflow.python.ops import gen_image_ops
 from tensorflow.python.ops import gen_math_ops
 from tensorflow.python.ops import gen_nn_ops
 from tensorflow.python.ops import math_ops
@@ -45,8 +47,19 @@ def conv2d_gradient(op, grad):
     return grad_i, grad_w, grad_b
 
 def upsampling2d_gradient(op, grad):
-    #TODO Handle half_pixel_centers=True for nearest neighbor implementation
-    return tf_reshape_gradient(op, grad)
+    image = op.inputs[0]
+    if image.get_shape()[1:3].is_fully_defined():
+        image_shape = image.get_shape()[1:3]
+    else:
+        image_shape = array_ops.shape(image)[1:3]
+
+    grads = gen_image_ops.resize_nearest_neighbor_grad(
+        grad,
+        image_shape,
+        align_corners=False,
+        half_pixel_centers=True)
+    
+    return [grads]
 
 def zeropadding2d_gradient(op, grad):
     return tf_pad_gradient(op, grad)
@@ -54,7 +67,6 @@ def zeropadding2d_gradient(op, grad):
 tf_conv2d_gradient = ops._gradient_registry.lookup('Conv2D')
 maxpool_gradient = ops._gradient_registry.lookup('MaxPool')
 avgpool_gradient = ops._gradient_registry.lookup('AvgPool')
-tf_reshape_gradient = ops._gradient_registry.lookup('Reshape')
 tf_pad_gradient = ops._gradient_registry.lookup('Pad')
 relu_gradient = ops._gradient_registry.lookup('Relu')
 leakyrelu_gradient = ops._gradient_registry.lookup('LeakyRelu')
