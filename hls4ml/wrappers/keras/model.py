@@ -45,10 +45,13 @@ class Sequential(K.Sequential):
 
     def rebuild(self, rebuilt_layers):
         new_layers = []
+        old_weights = {}
         input_shape = self.input.shape
+
         while(True):
             if len(self._self_tracked_trackables) > 0:
                 old_layer = self._self_tracked_trackables[-1]
+                weights = old_layer.get_weights()
                 config = old_layer.get_config()
                 try:
                     self.pop() # I wish they returned the layer name or some other handle
@@ -62,6 +65,10 @@ class Sequential(K.Sequential):
                 else:
                     # Or non-wrapped instance iw we skip wrapping
                     new_layer = old_layer.__class__.from_config(config)
+                if len(weights) > 0:
+                    # Save the weights
+                    old_weights[old_layer.name] = weights
+                new_layer.keras_class = old_layer.__class__
                 new_layers.append(new_layer)
             else:
                 break
@@ -70,3 +77,45 @@ class Sequential(K.Sequential):
             self.add(new_layer)
 
         self.build(input_shape)
+
+        # We add weights after the model is built (this is safer than model.set_weights())
+        for layer in self.layers:
+            weights = old_weights.get(layer.name, None)
+            if weights is not None:
+                layer.set_weights(weights)
+
+    def strip_wrappers(self):
+        new_layers = []
+        old_weights = {}
+        input_shape = self.input.shape
+
+        while(True):
+            if len(self._self_tracked_trackables) > 0:
+                old_layer = self._self_tracked_trackables[-1]
+                weights = old_layer.get_weights()
+                config = old_layer.get_config()
+                try:
+                    self.pop() # I wish they returned the layer name or some other handle
+                except TypeError:
+                    break
+                if isinstance(old_layer, K.layers.InputLayer):
+                    continue
+                new_layer = old_layer.keras_class.from_config(config)
+                if len(weights) > 0:
+                    # Save the weights
+                    old_weights[old_layer.name] = weights
+                new_layer.hls4ml_class = old_layer.__class__
+                new_layers.append(new_layer)
+            else:
+                break
+
+        for new_layer in reversed(new_layers):
+            self.add(new_layer)
+
+        self.build(input_shape)
+
+        # We add weights after the model is built (this is safer than model.set_weights())
+        for layer in self.layers:
+            weights = old_weights.get(layer.name, None)
+            if weights is not None:
+                layer.set_weights(weights)
