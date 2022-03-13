@@ -119,3 +119,46 @@ class Sequential(K.Sequential):
             weights = old_weights.get(layer.name, None)
             if weights is not None:
                 layer.set_weights(weights)
+
+    def get_hls4ml_config(self):
+        config = {}
+
+        model_config = {}
+        model_config['Precision'] = self.default_precision
+        model_config['ReuseFactor'] = 1
+        model_config['Strategy'] = 'Latency'
+
+        config['Model'] = model_config
+
+        name_config = {}
+        for layer in self.layers:
+            try:
+                hls_keras_config = layer.get_hls4ml_config()
+                if len(hls_keras_config) > 0:
+                    hls_config = {}
+                    precision_keys = [k for k in hls_keras_config.keys() if k.endswith('_t')]
+                    other_keys = [k for k in hls_keras_config.keys() if not k.endswith('_t')]
+                    
+                    if len(precision_keys) > 0:
+                        hls_config['Precision'] = {}
+                        for k in precision_keys:
+                            hls_param = hls_keras_config[k]
+                            if hls_param is not None:
+                                precision_name = k.replace('_t', '') if k.endswith('_t') else k #TODO Update when config scheme is overhauled
+                                hls_config['Precision'][precision_name] = hls_param
+                    
+                    if 'skip_wrapping' in other_keys:
+                        # Remove 'skip_wrapping' as it is not part of the hls4ml conversion config
+                        other_keys.remove('skip_wrapping')
+                    for k in other_keys:
+                        hls_param = hls_keras_config[k]
+                        if hls_param is not None:
+                            hls_config[k] = hls_param
+
+                    name_config[layer.name] = hls_config
+            except:
+                pass
+
+        config['LayerName'] = name_config
+
+        return config

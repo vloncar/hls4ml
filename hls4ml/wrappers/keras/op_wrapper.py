@@ -121,7 +121,7 @@ def _create_input_layer(input_shape, name):
 
     return input_layer
 
-def _extract_config_from_layer(layer_list, model_config):
+def _extract_config_from_layer(layer_list):
     config = {}
 
     for layer in layer_list:
@@ -236,7 +236,7 @@ def _parse_model(keras_model, output_dir=None):
         #print('Layer name: {}, layer type: {}, input shapes: {}, output shape: {}'.format(keras_name, keras_class, input_shapes, output_shape))
         layer_list.append(layer)
 
-        layer_hls4ml_config = _extract_config_from_layer(layer_list, model_config)
+        layer_hls4ml_config = _extract_config_from_layer(layer_list)
 
         hls_model = None
         act_model = None
