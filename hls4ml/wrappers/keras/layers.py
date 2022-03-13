@@ -96,7 +96,7 @@ class Dense(L.Dense):
 
         assert self.use_bias == True
 
-    def get_config(self):
+    def get_hls4ml_config(self):
         config = {
             'strategy': self.strategy,
             'weight_t': self.weight_t,
@@ -105,8 +105,12 @@ class Dense(L.Dense):
             'accum_t': self.accum_t,
             'skip_wrapping': self.skip_wrapping,
         }
+        return config
+
+    def get_config(self):
+        hls4ml_config = self.get_hls4ml_config()
         base_config = super(Dense, self).get_config()
-        return dict(list(base_config.items()) + list(config.items()))
+        return dict(list(base_config.items()) + list(hls4ml_config.items()))
 
 class BatchNormalization(L.BatchNormalization):
     @create_init(L.BatchNormalization)
@@ -120,15 +124,19 @@ class BatchNormalization(L.BatchNormalization):
         self.fused = False
         self.skip_wrapping = skip_wrapping
 
-    def get_config(self):
+    def get_hls4ml_config(self):
         config = {
             'scale_t': self.scale_t,
             'bias_t': self.bias_t,
             'result_t': self.result_t,
             'skip_wrapping': self.skip_wrapping,
         }
+        return config
+
+    def get_config(self):
+        hls4ml_config = self.get_hls4ml_config()
         base_config = super(BatchNormalization, self).get_config()
-        return dict(list(base_config.items()) + list(config.items()))
+        return dict(list(base_config.items()) + list(hls4ml_config.items()))
 
 #endregion
 
@@ -151,7 +159,7 @@ class Conv2D(L.Conv2D):
         assert self.dilation_rate == (1, 1)
         #TODO padding='same' will trip this up if using io_stream
 
-    def get_config(self):
+    def get_hls4ml_config(self):
         config = {
             'strategy': self.strategy,
             'implementation': self.implementation,
@@ -161,8 +169,12 @@ class Conv2D(L.Conv2D):
             'accum_t': self.accum_t,
             'skip_wrapping': self.skip_wrapping,
         }
+        return config
+
+    def get_config(self):
+        hls4ml_config = self.get_hls4ml_config()
         base_config = super(Conv2D, self).get_config()
-        return dict(list(base_config.items()) + list(config.items()))
+        return dict(list(base_config.items()) + list(hls4ml_config.items()))
 
 #endregion
 
@@ -178,15 +190,19 @@ class MaxPooling2D(L.MaxPooling2D):
 
         assert self.data_format == 'channels_last'
 
-    def get_config(self):
+    def get_hls4ml_config(self):
         config = {
             'implementation': self.implementation,
             'result_t': self.result_t,
             'accum_t': self.accum_t,
             'skip_wrapping': self.skip_wrapping,
         }
+        return config
+
+    def get_config(self):
+        hls4ml_config = self.get_hls4ml_config()
         base_config = super(MaxPooling2D, self).get_config()
-        return dict(list(base_config.items()) + list(config.items()))
+        return dict(list(base_config.items()) + list(hls4ml_config.items()))
 
 class AveragePooling2D(L.AveragePooling2D):
     @create_init(L.AveragePooling2D)
@@ -198,15 +214,19 @@ class AveragePooling2D(L.AveragePooling2D):
 
         assert self.data_format == 'channels_last'
 
-    def get_config(self):
+    def get_hls4ml_config(self):
         config = {
             'implementation': self.implementation,
             'result_t': self.result_t,
             'accum_t': self.accum_t,
             'skip_wrapping': self.skip_wrapping,
         }
+        return config
+
+    def get_config(self):
+        hls4ml_config = self.get_hls4ml_config()
         base_config = super(AveragePooling2D, self).get_config()
-        return dict(list(base_config.items()) + list(config.items()))
+        return dict(list(base_config.items()) + list(hls4ml_config.items()))
 
 MaxPool2D = MaxPooling2D
 AvgPool2D = AveragePooling2D
@@ -223,15 +243,19 @@ class Softmax(L.Softmax):
         self.inv_table_t = inv_table_t
         self.skip_wrapping = skip_wrapping
 
-    def get_config(self):
+    def get_hls4ml_config(self):
         config = {
             'strategy': self.strategy,
             'exp_table_t': self.exp_table_t,
             'inv_table_t': self.inv_table_t,
             'skip_wrapping': self.skip_wrapping,
         }
+        return config
+
+    def get_config(self):
+        hls4ml_config = self.get_hls4ml_config()
         base_config = super(Softmax, self).get_config()
-        return dict(list(base_config.items()) + list(config.items()))
+        return dict(list(base_config.items()) + list(hls4ml_config.items()))
 
 class ReLU(L.ReLU):
     @create_init(L.ReLU)
@@ -240,14 +264,18 @@ class ReLU(L.ReLU):
         self.table_size = table_size
         self.skip_wrapping = skip_wrapping
 
-    def get_config(self):
+    def get_hls4ml_config(self):
         config = {
             'table_t': self.table_t,
             'table_size': self.table_size,
             'skip_wrapping': self.skip_wrapping,
         }
+        return config
+
+    def get_config(self):
+        hls4ml_config = self.get_hls4ml_config()
         base_config = super(ReLU, self).get_config()
-        return dict(list(base_config.items()) + list(config.items()))
+        return dict(list(base_config.items()) + list(hls4ml_config.items()))
 
 class LeakyReLU(L.LeakyReLU):
     @create_init(L.LeakyReLU)
@@ -256,14 +284,18 @@ class LeakyReLU(L.LeakyReLU):
         self.table_size = table_size
         self.skip_wrapping = skip_wrapping
 
-    def get_config(self):
+    def get_hls4ml_config(self):
         config = {
             'table_t': self.table_t,
             'table_size': self.table_size,
             'skip_wrapping': self.skip_wrapping,
         }
+        return config
+
+    def get_config(self):
+        hls4ml_config = self.get_hls4ml_config()
         base_config = super(LeakyReLU, self).get_config()
-        return dict(list(base_config.items()) + list(config.items()))
+        return dict(list(base_config.items()) + list(hls4ml_config.items()))
 
 #endregion
 
@@ -275,12 +307,16 @@ class Flatten(L.Flatten):
         self.skip_wrapping = skip_wrapping
         assert self.data_format == 'channels_last'
 
-    def get_config(self):
+    def get_hls4ml_config(self):
         config = {
             'skip_wrapping': self.skip_wrapping,
         }
+        return config
+
+    def get_config(self):
+        hls4ml_config = self.get_hls4ml_config()
         base_config = super(Flatten, self).get_config()
-        return dict(list(base_config.items()) + list(config.items()))
+        return dict(list(base_config.items()) + list(hls4ml_config.items()))
 
 class Reshape(L.Reshape):
     pass
@@ -292,12 +328,16 @@ class UpSampling2D(L.UpSampling2D):
         assert self.data_format == 'channels_last'
         assert self.interpolation == 'nearest'
 
-    def get_config(self):
+    def get_hls4ml_config(self):
         config = {
             'skip_wrapping': self.skip_wrapping,
         }
+        return config
+
+    def get_config(self):
+        hls4ml_config = self.get_hls4ml_config()
         base_config = super(UpSampling2D, self).get_config()
-        return dict(list(base_config.items()) + list(config.items()))
+        return dict(list(base_config.items()) + list(hls4ml_config.items()))
 
 class ZeroPadding2D(L.ZeroPadding2D):
     @create_init(L.ZeroPadding2D)
@@ -305,11 +345,15 @@ class ZeroPadding2D(L.ZeroPadding2D):
         self.skip_wrapping = skip_wrapping
         assert self.data_format == 'channels_last'
 
-    def get_config(self):
+    def get_hls4ml_config(self):
         config = {
             'skip_wrapping': self.skip_wrapping,
         }
+        return config
+
+    def get_config(self):
+        hls4ml_config = self.get_hls4ml_config()
         base_config = super(ZeroPadding2D, self).get_config()
-        return dict(list(base_config.items()) + list(config.items()))
+        return dict(list(base_config.items()) + list(hls4ml_config.items()))
 
 #endregion
