@@ -40,14 +40,14 @@ class VivadoTrainWriter(VivadoWriter):
                             all_precision[type_name] = type_var
                 for used_type in all_precision.values():
                     newline += used_type.definition_cpp()
-                
+
                 for layer in model.get_layers():
                     defines = layer.get_attr('op_defines_cpp', None)
                     if defines is not None:
                         newline += defines
-                
+
                 newline += '\n' + '#define NAME "' + model.config.get_project_name() + '"\n'
-            
+
             elif '//hls4ml insert parameters' in line:
                 for layer in model.get_layers():
                     config = layer.get_attr('config_cpp', None)
@@ -60,7 +60,7 @@ class VivadoTrainWriter(VivadoWriter):
                 config_cpp = main_layer.get_attr('config_cpp', None)
                 if config_cpp is not None:
                     # Note to self: Remember that time you decided that layer's config pattern is 'config{index}' but
-                    # activation's pattern is 'activ_config{index}'? Yeah, not the stroke of a genius there. 
+                    # activation's pattern is 'activ_config{index}'? Yeah, not the stroke of a genius there.
                     # Because of that decision we have this complex parsing, where we need to get the right config
                     # (there can be multiple ones in a single layer!) and we need to extract the name from the last one.
                     structs = list(filter(lambda x: x.startswith('struct '), config_cpp.split('\n')))
@@ -68,10 +68,12 @@ class VivadoTrainWriter(VivadoWriter):
                     newline = f'typedef {config_name} hconfig;\n'
                 else:
                     newline = ''
-            
+
             elif '//hls4ml insert io-type' in line:
-                newline = '#define IO_TYPE {}'.format(model.config.get_config_value("IOType"))
-            
+                io_type = model.config.get_config_value("IOType").lower()
+                io_type_num = 1 if io_type == 'io_parallel' else 2
+                newline = '#define IO_TYPE {} // == {}'.format(io_type_num, io_type)
+
             else:
                 newline = line
             fout.write(newline)
@@ -107,7 +109,7 @@ class VivadoTrainWriter(VivadoWriter):
                 newline = 'OMPFLAGS=\n'
             else:
                 newline = line
-            
+
             fout.write(newline)
 
         f.close()

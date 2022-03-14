@@ -1,10 +1,10 @@
 #include "op_utils.h"
 
 #ifndef IO_TYPE
-    #define IO_TYPE io_parallel
+    #define IO_TYPE 1 // == io_parallel
 #endif
 
-#if IO_TYPE == io_parallel
+#if IO_TYPE == 1 // == io_parallel
     template <class data_T, size_t N_IN>
     using ap_data_t = data_T[N_IN]; // Oof!
 
@@ -17,7 +17,7 @@
     template<class res_T, size_t N_OUT>
     const auto copy_result = copy_result_array<res_T, N_OUT>;
 
-#elif IO_TYPE == io_stream
+#elif IO_TYPE == 2 // == io_stream
     template <class data_T, size_t N_IN>
     using ap_data_t = hls::stream<data_T>;
 

@@ -246,7 +246,7 @@ def _parse_model(keras_model, output_dir=None):
                 output_dir=output_dir + '/' + keras_name,
                 project_name='H' + keras_class + str(hls_model_counter),
                 backend='VivadoTrain',
-                io_type='io_parallel'
+                io_type=model_arch['config']['io_type']
             )
 
             config['HLSConfig'] = {}

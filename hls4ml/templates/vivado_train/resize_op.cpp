@@ -8,8 +8,8 @@
 #include "ap_int.h"
 #include "ap_fixed.h"
 #include "hls_stream.h"
-#include "op_utils.h"
 #include "nnet_utils/nnet_helpers.h"
+#include "nnet_utils/nnet_types.h"
 #include "nnet_utils/nnet_image.h"
 #include "nnet_utils/nnet_image_stream.h"
 

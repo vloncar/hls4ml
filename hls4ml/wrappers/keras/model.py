@@ -7,17 +7,24 @@ class Model(K.Model):
     pass
 
 class Sequential(K.Sequential):
-    def __init__(self, default_precision, layers=None, name=None, output_dir=None, parallel=True):
+    def __init__(self, default_precision, layers=None, name=None, io_type='io_parallel', output_dir=None, parallel=True):
         super().__init__(layers, name)
         self.default_precision = default_precision
+        self.io_type = io_type
         self.output_dir = output_dir
         self.parallel = parallel
         self.wrapped = False
-        # TODO all HLSConfig/Model parameters should be passable to this instance
+
+        assert self.io_type in ('io_parallel', 'io_stream')
+
+        if self.io_type == 'io_stream' and self.parallel:
+            print('WARNING: Cannot run "io_stream" in parallel. Disabling parallelisation.')
+            self.parallel = False
 
     def get_config(self):
         config = {
             'default_precision': self.default_precision,
+            'io_type': self.io_type,
             'output_dir': self.output_dir,
             'parallel': self.parallel,
         }
@@ -87,7 +94,7 @@ class Sequential(K.Sequential):
             weights = old_weights.get(layer.name, None)
             if weights is not None:
                 layer.set_weights(weights)
-        
+
         self.wrapped = True
 
     def strip_wrappers(self):
@@ -125,7 +132,7 @@ class Sequential(K.Sequential):
             weights = old_weights.get(layer.name, None)
             if weights is not None:
                 layer.set_weights(weights)
-        
+
         self.wrapped = False
 
     def get_hls4ml_config(self):
@@ -146,7 +153,7 @@ class Sequential(K.Sequential):
                     hls_config = {}
                     precision_keys = [k for k in hls_keras_config.keys() if k.endswith('_t')]
                     other_keys = [k for k in hls_keras_config.keys() if not k.endswith('_t')]
-                    
+
                     if len(precision_keys) > 0:
                         hls_config['Precision'] = {}
                         for k in precision_keys:
@@ -154,7 +161,7 @@ class Sequential(K.Sequential):
                             if hls_param is not None:
                                 precision_name = k.replace('_t', '') if k.endswith('_t') else k #TODO Update when config scheme is overhauled
                                 hls_config['Precision'][precision_name] = hls_param
-                    
+
                     if 'skip_wrapping' in other_keys:
                         # Remove 'skip_wrapping' as it is not part of the hls4ml conversion config
                         other_keys.remove('skip_wrapping')

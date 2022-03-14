@@ -16,7 +16,7 @@ void copy_input_array(
 
 template<class data_T, size_t N>
 void copy_input_stream(
-    float data[N],
+    const float data[N],
     hls::stream<data_T> &ap_data,
     unsigned batch
 ) {
@@ -31,7 +31,7 @@ void copy_input_stream(
 
 template<class res_T, size_t N>
 void copy_result_array(
-    res_T ap_result[N],
+    const res_T ap_result[N],
     float result[N],    
     unsigned batch
 ) {
@@ -49,7 +49,7 @@ void copy_result_stream(
     CopyResult: for(int i_out = 0; i_out < N / res_T::size; i_out++) {
         res_T res_pack = ap_result.read();
         DataPack: for (int i_pack = 0; i_pack < res_T::size; i_pack++) {
-            ap_result[batch * N + i_out * res_T::size + i_pack] = res_pack[i_pack];
+            result[batch * N + i_out * res_T::size + i_pack] = res_pack[i_pack];
         }
     }
 }
