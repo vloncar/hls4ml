@@ -10,7 +10,9 @@ TF_LFLAGS=$(shell $(PYTHON_BIN_PATH) -c 'import tensorflow as tf; print(" ".join
 
 INCFLAGS=-Iap_types/
 
-CFLAGS="${TF_CFLAGS} -fPIC -O2 -std=c++14 -Wno-deprecated-declarations ${INCFLAGS}"
+OMPFLAGS=-fopenmp
+
+CFLAGS="${TF_CFLAGS} -fPIC -O2 -std=c++14 -Wno-deprecated-declarations ${OMPFLAGS} ${INCFLAGS}"
 LDFLAGS="-shared ${TF_LFLAGS}"
 
 TARGET_LIB=layer_op.so

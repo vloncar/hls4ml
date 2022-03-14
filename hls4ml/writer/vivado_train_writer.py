@@ -88,6 +88,12 @@ class VivadoTrainWriter(VivadoWriter):
         f = open(os.path.join(filedir,'../templates/vivado_train/build_op.sh'),'r')
         fout = open('{}/build_op.sh'.format(model.config.get_output_dir()), 'w')
 
+        #TODO handling parallelization should be updated with the new configuration framework
+        parallel = True
+        model_config = model.config.config['HLSConfig'].get('Model', None)
+        if model_config is not None:
+            parallel = model_config.get('Parallel', True)
+
         for line in f.readlines():
             if 'OP_SRC=' in line:
                 newline = 'OP_SRC={}_op.cpp\n'.format(model.config.get_project_name())
@@ -97,6 +103,8 @@ class VivadoTrainWriter(VivadoWriter):
                 newline = 'TF_CFLAGS="{}"\n'.format(' '.join(tf.sysconfig.get_compile_flags()))
             elif 'TF_LFLAGS=' in line:
                 newline = 'TF_LFLAGS="{}"\n'.format(' '.join(tf.sysconfig.get_link_flags()))
+            elif 'OMPFLAGS=' in line and not parallel:
+                newline = 'OMPFLAGS=\n'
             else:
                 newline = line
             

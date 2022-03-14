@@ -1,3 +1,5 @@
+#include <omp.h>
+
 #include "tensorflow/core/framework/op.h"
 #include "tensorflow/core/framework/op_kernel.h"
 #include "tensorflow/core/framework/shape_inference.h"
@@ -61,6 +63,7 @@ class HParametrizedActivationOp : public OpKernel {
             ap_res_t<result_t, hconfig::n_in> ap_res;
             input_t ap_alpha = alpha;
 
+            #pragma omp parallel for private(ap_data, ap_res)
             for (int b = 0; b < n_batch; b++) {
                 copy_input<input_t, hconfig::n_in>(data, ap_data, b);
                 nnet::ACTIVATION<input_t, result_t, hconfig>(ap_data, ap_alpha, ap_res);

@@ -1,9 +1,11 @@
+#include <cmath>
+#include <omp.h>
+
 #include "tensorflow/core/framework/op.h"
 #include "tensorflow/core/framework/op_kernel.h"
 #include "tensorflow/core/framework/shape_inference.h"
 #include "tensorflow/core/framework/common_shape_fns.h"
 
-#include <cmath>
 #include "ap_int.h"
 #include "ap_fixed.h"
 #include "hls_stream.h"
@@ -61,7 +63,8 @@ class HBatchNormalizationOp : public OpKernel {
             auto scale = scale_tensor.flat<float>();
             auto bias = bias_tensor.flat<float>();
 
-            ScaleBias: for (int i = 0; i < scale_tensor.NumElements(); i++) {
+            #pragma omp parallel for
+            for (int i = 0; i < scale_tensor.NumElements(); i++) {
                 scale(i) = gamma(i) / sqrt(variance(i) + epsilon);
                 bias(i) = beta(i) - gamma(i) * mean(i) / sqrt(variance(i) + epsilon);
             }
@@ -74,14 +77,17 @@ class HBatchNormalizationOp : public OpKernel {
             typename hconfig::scale_t ap_scale[n_in];
             typename hconfig::bias_t ap_bias[n_in];
 
-            CopyScale: for(int s = 0; s < n_in; s++) {
+            #pragma omp parallel for
+            for(int s = 0; s < n_in; s++) {
                 ap_scale[s] = (typename hconfig::scale_t) scale(s);
             }
 
-            CopyBias: for(int b = 0; b < n_in; b++) {
+            #pragma omp parallel for
+            for(int b = 0; b < n_in; b++) {
                 ap_bias[b] = (typename hconfig::bias_t) bias(b);
             }
 
+            #pragma omp parallel for private(ap_data, ap_res)
             for (int b = 0; b < n_batch; b++) {
                 copy_input<input_t, hconfig::n_in>(data, ap_data, b);
                 nnet::normalize<input_t, result_t, hconfig>(ap_data, ap_res, ap_scale, ap_bias);

@@ -168,6 +168,7 @@ def _parse_model(keras_model, output_dir=None):
     model_config = {
         'Precision': model_arch['config']['default_precision'],
         'ReuseFactor': 1,
+        'Parallel': model_arch['config']['parallel'],
     }
 
     layer_config = None

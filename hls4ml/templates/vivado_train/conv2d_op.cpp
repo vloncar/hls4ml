@@ -1,3 +1,5 @@
+#include <omp.h>
+
 #include "tensorflow/core/framework/op.h"
 #include "tensorflow/core/framework/op_kernel.h"
 #include "tensorflow/core/framework/shape_inference.h"
@@ -58,14 +60,17 @@ class HConv2DOp : public OpKernel {
             typename hconfig::weight_t ap_weights[hconfig::filt_height * hconfig::filt_width * hconfig::n_chan * hconfig::n_filt];
             typename hconfig::bias_t ap_biases[hconfig::n_filt];
 
-            CopyWeights: for(int w = 0; w < hconfig::filt_height * hconfig::filt_width * hconfig::n_chan * hconfig::n_filt; w++) {
+            #pragma omp parallel for
+            for(int w = 0; w < hconfig::filt_height * hconfig::filt_width * hconfig::n_chan * hconfig::n_filt; w++) {
                 ap_weights[w] = (typename hconfig::weight_t) weights(w);
             }
 
-            CopyBiases: for(unsigned b = 0; b < hconfig::n_filt; b++) {
+            #pragma omp parallel for
+            for(unsigned b = 0; b < hconfig::n_filt; b++) {
                 ap_biases[b] = (typename hconfig::bias_t) biases(b);
             }
 
+            #pragma omp parallel for private(ap_data, ap_res)
             for (int b = 0; b < n_batch; b++) {
                 copy_input<input_t, hconfig::in_height * hconfig::in_width * hconfig::n_chan>(data, ap_data, b);
                 nnet::conv_2d_cl<input_t, result_t, hconfig>(ap_data, ap_res, ap_weights, ap_biases);

@@ -7,15 +7,18 @@ class Model(K.Model):
     pass
 
 class Sequential(K.Sequential):
-    def __init__(self, default_precision, layers=None, name=None, output_dir=None):
+    def __init__(self, default_precision, layers=None, name=None, output_dir=None, parallel=True):
         super().__init__(layers, name)
         self.default_precision = default_precision
         self.output_dir = output_dir
+        self.parallel = parallel
         # TODO all HLSConfig/Model parameters should be passable to this instance
 
     def get_config(self):
         config = {
             'default_precision': self.default_precision,
+            'output_dir': self.output_dir,
+            'parallel': self.parallel,
         }
         base_config = super(Sequential, self).get_config()
         return dict(list(base_config.items()) + list(config.items()))

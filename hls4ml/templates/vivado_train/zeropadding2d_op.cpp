@@ -1,3 +1,5 @@
+#include <omp.h>
+
 #include "tensorflow/core/framework/op.h"
 #include "tensorflow/core/framework/op_kernel.h"
 #include "tensorflow/core/framework/shape_inference.h"
@@ -62,6 +64,7 @@ class HZeroPadding2DOp : public OpKernel {
             ap_data_t<input_t, hconfig::in_height * hconfig::in_width * hconfig::n_chan> ap_data;
             ap_res_t<result_t, hconfig::out_height * hconfig::out_width * hconfig::n_chan> ap_res;
 
+            #pragma omp parallel for private(ap_data, ap_res)
             for (int b = 0; b < n_batch; b++) {
                 copy_input<input_t, hconfig::in_height * hconfig::in_width * hconfig::n_chan>(data, ap_data, b);
                 nnet::zeropad2d_cl<input_t, result_t, hconfig>(ap_data, ap_res);

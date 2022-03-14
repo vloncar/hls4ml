@@ -1,3 +1,5 @@
+#include <omp.h>
+
 #include "tensorflow/core/framework/op.h"
 #include "tensorflow/core/framework/op_kernel.h"
 #include "tensorflow/core/framework/shape_inference.h"
@@ -58,14 +60,17 @@ class HDenseOp : public OpKernel {
             typename hconfig::weight_t ap_weights[n_in * n_out];
             typename hconfig::bias_t ap_biases[n_out];
 
-            CopyWeights: for(int w = 0; w < n_in * n_out; w++) {
+            #pragma omp parallel for
+            for(int w = 0; w < n_in * n_out; w++) {
                 ap_weights[w] = (typename hconfig::weight_t) weights(w);
             }
 
-            CopyBiases: for(int b = 0; b < n_out; b++) {
+            #pragma omp parallel for
+            for(int b = 0; b < n_out; b++) {
                 ap_biases[b] = (typename hconfig::bias_t) biases(b);
             }
 
+            #pragma omp parallel for private(ap_data, ap_res)
             for (int b = 0; b < n_batch; b++) {
                 copy_input<input_t, hconfig::n_in>(data, ap_data, b);
                 nnet::dense<input_t, result_t, hconfig>(ap_data, ap_res, ap_weights, ap_biases);
