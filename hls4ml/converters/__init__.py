@@ -213,6 +213,55 @@ def convert_from_keras_model(model, output_dir='my-hls-test', project_name='mypr
 
     return keras_to_hls(config)
 
+def convert_from_wrapped_model(model, output_dir='my-hls-test', project_name='myproject', input_data_tb=None,
+                             output_data_tb=None, backend='Vivado', **kwargs):
+    """Convert to hls4ml model based on the provided configuration.
+    Args:
+        model: Wrapped Keras model to convert
+        output_dir (str, optional): Output directory of the generated HLS
+            project. Defaults to 'my-hls-test'.
+        project_name (str, optional): Name of the HLS project.
+            Defaults to 'myproject'.
+        input_data_tb (str, optional): String representing the path of input data in .npy or .dat format that will be
+            used during csim and cosim.
+        output_data_tb (str, optional): String representing the path of output data in .npy or .dat format that will be
+            used during csim and cosim.
+        backend (str, optional): Name of the backend to use, e.g., 'Vivado'
+            or 'Quartus'.
+        board (str, optional): One of target boards specified in `supported_board.json` file. If set to `None` a default
+            device of a backend will be used. See documentation of the backend used.
+        part (str, optional): The FPGA part. If set to `None` a default part of a backend will be used.
+            See documentation of the backend used. Note that if `board` is specified, the part associated to that board
+            will overwrite any part passed as a parameter.
+        clock_period (int, optional): Clock period of the design.
+            Defaults to 5.
+        io_type (str, optional): Type of implementation used. One of
+            'io_parallel' or 'io_serial'. Defaults to 'io_parallel'.
+        kwargs** (dict, optional): Additional parameters that will be used to create the config of the specified backend
+    Raises:
+        Exception: If precision and reuse factor are not present in 'hls_config'
+    Returns:
+        ModelGraph: hls4ml model.
+    """
+
+    from hls4ml.wrappers import keras as K
+
+    if not isinstance(model, (K.Sequential, K.Model)):
+        raise Exception('Model is not wrapped. Stopping conversion.')
+
+    if model.wrapped:
+        print('Stripping wrappers from the model.')
+        model.strip_wrappers()
+
+    return convert_from_keras_model(
+        model,
+        output_dir=output_dir,
+        project_name=project_name,
+        input_data_tb=input_data_tb,
+        output_data_tb=output_data_tb,
+        backend=backend,
+        hls_config=model.get_hls4ml_config()
+    )
 
 def convert_from_pytorch_model(model, input_shape, output_dir='my-hls-test', project_name='myproject', input_data_tb=None,
                              output_data_tb=None, backend='Vivado', hls_config={}, **kwargs):

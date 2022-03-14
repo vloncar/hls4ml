@@ -325,4 +325,4 @@ def compile_model(model, output_dir=None):
     op_wrappers = _parse_model(model, output_dir=output_dir)
     _compile_ops(op_wrappers)
     new_layers = _build_layers(op_wrappers)
-    return model.rebuild(new_layers)
+    model.rebuild(new_layers)

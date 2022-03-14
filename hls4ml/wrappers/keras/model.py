@@ -12,6 +12,7 @@ class Sequential(K.Sequential):
         self.default_precision = default_precision
         self.output_dir = output_dir
         self.parallel = parallel
+        self.wrapped = False
         # TODO all HLSConfig/Model parameters should be passable to this instance
 
     def get_config(self):
@@ -86,6 +87,8 @@ class Sequential(K.Sequential):
             weights = old_weights.get(layer.name, None)
             if weights is not None:
                 layer.set_weights(weights)
+        
+        self.wrapped = True
 
     def strip_wrappers(self):
         new_layers = []
@@ -122,6 +125,8 @@ class Sequential(K.Sequential):
             weights = old_weights.get(layer.name, None)
             if weights is not None:
                 layer.set_weights(weights)
+        
+        self.wrapped = False
 
     def get_hls4ml_config(self):
         config = {}
