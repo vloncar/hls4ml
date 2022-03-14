@@ -6,6 +6,9 @@
 #include "tensorflow/core/framework/shape_inference.h"
 #include "tensorflow/core/framework/common_shape_fns.h"
 
+#undef MIN
+#undef MAX
+
 #include "ap_int.h"
 #include "ap_fixed.h"
 #include "hls_stream.h"
