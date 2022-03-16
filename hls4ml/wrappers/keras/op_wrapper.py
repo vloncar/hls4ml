@@ -308,6 +308,7 @@ def _parse_model(keras_model, output_dir=None):
 
 def _compile_ops(op_wrappers):
     for name, wrapper_list in op_wrappers.items():
+        print('Compiling custom op for: {}'.format(name))
         for wrapper in wrapper_list:
             wrapper.compile()
             wrapper.link()
@@ -315,6 +316,7 @@ def _compile_ops(op_wrappers):
 def _build_layers(op_wrappers):
     new_layers = {}
     for name, wrapper_list in op_wrappers.items():
+        print('Wrapping layer: {}'.format(name))
         for wrapper in wrapper_list:
             h_layer = wrapper.build_layer()
             new_layers[name] = h_layer
@@ -322,7 +324,10 @@ def _build_layers(op_wrappers):
     return new_layers
 
 def compile_model(model, output_dir=None):
+    print('Parsing model to HLS')
     op_wrappers = _parse_model(model, output_dir=output_dir)
     _compile_ops(op_wrappers)
     new_layers = _build_layers(op_wrappers)
+    print('Rebuilding model with wrappers')
     model.rebuild(new_layers)
+    print('Done')
