@@ -129,7 +129,7 @@ def parse_default_hls4ml_layer(keras_layer):
     layer = {}
 
     if 'strategy' in keras_layer['config']:
-        layer['strategy'] = keras_layer['config']['strategy']
+        layer['Strategy'] = keras_layer['config']['strategy']
 
     # All data types
     for key in keras_layer['config'].keys():
