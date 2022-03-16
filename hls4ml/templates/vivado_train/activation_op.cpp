@@ -47,12 +47,14 @@ class HActivationOp : public OpKernel {
 
             // Create an output tensor
             Tensor* output_tensor = NULL;
-            TensorShape out_shape = TensorShape({input_tensor.dim_size(0), input_tensor.dim_size(1)});
-            OP_REQUIRES_OK(context, context->allocate_output(0, out_shape, &output_tensor));
+            OP_REQUIRES_OK(context, context->allocate_output(0, input_tensor.shape(), &output_tensor));
             auto res = output_tensor->flat<float>().data();
 
             const int n_batch = input_tensor.dim_size(0);
-            const int n_in = input_tensor.dim_size(1);
+            int n_in = 1;
+            for(int i = 1; i < input_tensor.dims(); i++) {
+                n_in *= input_tensor.dim_size(i);
+            }
 
             assert(n_in == hconfig::n_in && "Input tensor size must match the provided config");
 
