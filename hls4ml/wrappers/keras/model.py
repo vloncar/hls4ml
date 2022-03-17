@@ -168,6 +168,9 @@ class Sequential(K.Sequential):
                     for k in other_keys:
                         hls_param = hls_keras_config[k]
                         if hls_param is not None:
+                            #TODO This is a temporary hack until we update the config scheme
+                            if k == 'strategy':
+                                k = 'Strategy'
                             hls_config[k] = hls_param
 
                     name_config[layer.name] = hls_config
