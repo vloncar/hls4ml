@@ -22,20 +22,27 @@ class CustomOpWrapper(object):
         self.op_func_name = None
         self.op_lib_name = None
         self.op_func = None
+        self.op_project_name = self.hls_model.config.get_project_name()
+        self.op_stamp = None
 
         if self.act_model is not None:
             act = list(self.act_model.get_layers())[1].get_attr('activation')
             self.act_keras_class = ''.join(word.title() for word in act.split('_'))
+            self.act_project_name = self.act_model.config.get_project_name()
         else:
             self.act_keras_class = None
+            self.act_project_name = None
         self.act_func_name = None
         self.act_lib_name = None
         self.act_func = None
+        self.act_stamp = None
 
     def write(self):
         self.hls_model.write()
+        self.op_stamp = self.hls_model.config.get_config_value('Stamp').lower()
         if self.act_model is not None:
             self.act_model.write()
+            self.act_stamp = self.act_model.config.get_config_value('Stamp').lower()
 
     def compile(self):
         self.write()
@@ -49,12 +56,20 @@ class CustomOpWrapper(object):
             raise Exception('Custom op must be compiled first with `compile()`.')
 
         op_module = load_library.load_op_library(self.op_lib_name)
-        self.op_func_name = self._find_func_name(op_module.__dict__.keys(), self.hls_model.config.get_project_name())
+        self.op_func_name = self._find_func_name(
+            op_module.__dict__.keys(),
+            self.op_project_name,
+            self.op_stamp
+        )
         self.op_func = op_module.__dict__[self.op_func_name]
 
         if self.act_lib_name is not None:
             op_module = load_library.load_op_library(self.act_lib_name)
-            self.act_func_name = self._find_func_name(op_module.__dict__.keys(), self.act_model.config.get_project_name())
+            self.act_func_name = self._find_func_name(
+                op_module.__dict__.keys(),
+                self.act_project_name,
+                self.act_stamp
+            )
             self.act_func = op_module.__dict__[self.act_func_name]
 
     def _get_python_func_name(self, cpp_name):
@@ -64,8 +79,9 @@ class CustomOpWrapper(object):
         subbed = re.sub(r'(.)([A-Z][a-z]+)', r'\1_\2', cpp_name)
         return re.sub('([a-z0-9])([A-Z])', r'\1_\2', subbed).lower()
 
-    def _find_func_name(self, module_attrs, project_name):
+    def _find_func_name(self, module_attrs, project_name, stamp):
         func_name = self._get_python_func_name(project_name) # HDense1 -> h_dense1
+        func_name += '_' + stamp
 
         # Since the CamelCase to snake_case conversion is not perfect, search the attributes for a
         #  function most similar to our snake_case. It would be great if TF provided a function for this.
@@ -96,9 +112,11 @@ class CustomOpWrapper(object):
         # functions make an effort not to rebuild. Instead we create wrappers around existing layer
         # classes with new call functions and replace the original layers in the model with the wrappers.
 
-        register_gradient(self.hls_model.config.get_project_name(), self.op_keras_class)
+        op_grad_name = self.op_project_name + '_' + self.op_stamp
+        register_gradient(op_grad_name, self.op_keras_class)
         if self.act_model is not None:
-            register_gradient(self.act_model.config.get_project_name(), self.act_keras_class)
+            act_grad_name = self.act_project_name + '_' + self.act_stamp
+            register_gradient(act_grad_name, self.act_keras_class)
 
         h_layer = type(
             self.hls_model.config.get_project_name(), # Class name, e.g., HDense1

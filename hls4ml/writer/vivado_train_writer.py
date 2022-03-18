@@ -46,7 +46,8 @@ class VivadoTrainWriter(VivadoWriter):
                     if defines is not None:
                         newline += defines
 
-                newline += '\n' + '#define NAME "' + model.config.get_project_name() + '"\n'
+                op_name = model.config.get_project_name() + '_' + model.config.get_config_value('Stamp').lower()
+                newline += '\n' + '#define NAME "' + op_name + '"\n'
 
             elif '//hls4ml insert parameters' in line:
                 for layer in model.get_layers():
@@ -100,7 +101,7 @@ class VivadoTrainWriter(VivadoWriter):
             if 'OP_SRC=' in line:
                 newline = 'OP_SRC={}_op.cpp\n'.format(model.config.get_project_name())
             elif 'TARGET_LIB=' in line:
-                newline = 'TARGET_LIB={}_op.so\n'.format(model.config.get_project_name())
+                newline = 'TARGET_LIB={}_op-{}.so\n'.format(model.config.get_project_name(), model.config.get_config_value('Stamp'))
             elif 'TF_CFLAGS=' in line:
                 newline = 'TF_CFLAGS="{}"\n'.format(' '.join(tf.sysconfig.get_compile_flags()))
             elif 'TF_LFLAGS=' in line:

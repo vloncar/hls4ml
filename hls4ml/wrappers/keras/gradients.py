@@ -37,7 +37,7 @@ def bn_gradient(op, grad):
         grad_gamma = math_ops.reduce_sum(grad_y * (x - mean) * math_ops.rsqrt(variance + epsilon), axis=0)
 
     grad_beta = math_ops.reduce_sum(grad_y, axis=0)
-    
+
     return grad_x, grad_gamma, grad_beta, None, None
 
 def conv2d_gradient(op, grad):
@@ -58,7 +58,7 @@ def upsampling2d_gradient(op, grad):
         image_shape,
         align_corners=False,
         half_pixel_centers=True)
-    
+
     return [grads]
 
 def zeropadding2d_gradient(op, grad):
@@ -105,4 +105,8 @@ def register_gradient(wrapper_name, keras_class):
     if grad_func is None:
         raise Exception(f'Cannot register gradient for: {wrapper_name} ({keras_class}). No mathing gradient function found.')
 
-    ops._gradient_registry.register(grad_func, wrapper_name)
+    try:
+        ops._gradient_registry.lookup(wrapper_name)
+        print(f'Found existing gradient for {wrapper_name}, skipping registration.')
+    except LookupError:
+        ops._gradient_registry.register(grad_func, wrapper_name)

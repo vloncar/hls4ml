@@ -35,7 +35,7 @@ class VivadoTrainBackend(VivadoBackend):
             ret_val = os.system('bash build_op.sh')
             if ret_val != 0:
                 raise Exception('Failed to compile project "{}"'.format(model.config.get_project_name()))
-            lib_name = '{}/{}_op.so'.format(model.config.get_output_dir(), model.config.get_project_name())
+            lib_name = '{}/{}_op-{}.so'.format(model.config.get_output_dir(), model.config.get_project_name(), model.config.get_config_value('Stamp'))
         finally:
             os.chdir(curr_dir)
         

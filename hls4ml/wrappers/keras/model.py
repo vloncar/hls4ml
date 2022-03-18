@@ -74,7 +74,7 @@ class Sequential(K.Sequential):
                     # Create the new wrapped layer instance based on the config
                     new_layer = rebuilt_layers[old_layer.name].from_config(config)
                 else:
-                    # Or non-wrapped instance iw we skip wrapping
+                    # Or non-wrapped instance if we skip wrapping
                     new_layer = old_layer.__class__.from_config(config)
                 if len(weights) > 0:
                     # Save the weights
