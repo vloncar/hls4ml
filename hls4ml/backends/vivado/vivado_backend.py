@@ -58,16 +58,16 @@ class VivadoBackend(FPGABackend):
         template_flow = register_flow('apply_templates', templates, requires=[init_flow], backend=self.name)
 
         writer_passes = [
+            'make_stamp',
             'vivado:write_hls'
         ]
-        writer_flow_requirements = ['optimize', vivado_types_flow, template_flow]
-        self._writer_flow = register_flow('write', writer_passes, requires=writer_flow_requirements, backend=self.name)
+        self._writer_flow = register_flow('write', writer_passes, requires=['vivado:ip'], backend=self.name)
 
         fifo_depth_opt_passes = [
             'vivado:fifo_depth_optimization'
-        ]
+        ] + writer_passes # After optimization, a new project will be written
 
-        register_flow('fifo_depth_optimization', fifo_depth_opt_passes, requires=['vivado:ip'], backend=self.name)
+        register_flow('fifo_depth_optimization', fifo_depth_opt_passes, requires=[self._writer_flow], backend=self.name)
 
         all_passes = get_backend_passes(self.name)
 
