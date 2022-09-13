@@ -25,12 +25,10 @@ struct lstm_config {
   #include <iostream>
   #include <fstream>
 #endif
-#ifndef TIMESTAMP_UNROLLING
-  #define TIMESTAMP_UNROLLING
-#endif
+
 
 //----------------------
-// COMUM CODE
+// COMMOM CODE
 //----------------------
 
 template<class data_T, class res_T,typename CONFIG_T,class WEIGHT_T>
@@ -121,41 +119,41 @@ template<class data_T, typename CONFIG_T, typename WEIGHT_T>
     //Internals definitions
     //----------------------
 
-    data_T i_afterW   [lstm_config::n_out] ;
-    data_T i_afterBias[lstm_config::n_out] ;
-    data_T c_afterW   [lstm_config::n_out] ;
-    data_T c_afterBias[lstm_config::n_out] ;
-    data_T o_afterW   [lstm_config::n_out] ;
-    data_T o_afterBias[lstm_config::n_out] ;
-    data_T f_afterW   [lstm_config::n_out] ;
-    data_T f_afterBias[lstm_config::n_out] ;
+    data_T i_afterW   [CONFIG_T::n_out] ;
+    data_T i_afterBias[CONFIG_T::n_out] ;
+    data_T c_afterW   [CONFIG_T::n_out] ;
+    data_T c_afterBias[CONFIG_T::n_out] ;
+    data_T o_afterW   [CONFIG_T::n_out] ;
+    data_T o_afterBias[CONFIG_T::n_out] ;
+    data_T f_afterW   [CONFIG_T::n_out] ;
+    data_T f_afterBias[CONFIG_T::n_out] ;
 
     // Hidden state Gate candidates, intermediate variables
-    data_T i_hiddenCand[lstm_config::n_out] ;
-    data_T f_hiddenCand[lstm_config::n_out] ;
-    data_T c_hiddenCand[lstm_config::n_out] ;
-    data_T o_hiddenCand[lstm_config::n_out] ;
+    data_T i_hiddenCand[CONFIG_T::n_out] ;
+    data_T f_hiddenCand[CONFIG_T::n_out] ;
+    data_T c_hiddenCand[CONFIG_T::n_out] ;
+    data_T o_hiddenCand[CONFIG_T::n_out] ;
 
     // AfterAddition, intermediate variables
-    data_T i_afterAdd[lstm_config::n_out] ;
-    data_T f_afterAdd[lstm_config::n_out] ;
-    data_T c_afterAdd[lstm_config::n_out] ;
-    data_T o_afterAdd[lstm_config::n_out] ;
+    data_T i_afterAdd[CONFIG_T::n_out] ;
+    data_T f_afterAdd[CONFIG_T::n_out] ;
+    data_T c_afterAdd[CONFIG_T::n_out] ;
+    data_T o_afterAdd[CONFIG_T::n_out] ;
 
     // Gate outputs
-    data_T gate_i[lstm_config::n_out] ;
-    data_T gate_f[lstm_config::n_out] ;
-    data_T gate_c[lstm_config::n_out] ;
-    data_T gate_o[lstm_config::n_out] ;
-    data_T gate_ic[lstm_config::n_out] ;
-    data_T gate_forget[lstm_config::n_out] ;
+    data_T gate_i[CONFIG_T::n_out] ;
+    data_T gate_f[CONFIG_T::n_out] ;
+    data_T gate_c[CONFIG_T::n_out] ;
+    data_T gate_o[CONFIG_T::n_out] ;
+    data_T gate_ic[CONFIG_T::n_out] ;
+    data_T gate_forget[CONFIG_T::n_out] ;
 
-    data_T h[lstm_config::n_out] ;
+    data_T h[CONFIG_T::n_out] ;
 
 
     //intermediate variable cell calculation
-    data_T cell_act_multp[lstm_config::n_out] ;
-    data_T cell_act_add[lstm_config::n_out] ;
+    data_T cell_act_multp[CONFIG_T::n_out] ;
+    data_T cell_act_add[CONFIG_T::n_out] ;
 
 
     //-----------Gate I Calculations
@@ -258,7 +256,7 @@ template<class data_T, class res_T,class CONFIG_T ,class WEIGHT_T>
         }
       }
 
-    #pragma unroll TIMESTAMP_UNROLLING
+    #pragma unroll 
     for (int i=0; i < CONFIG_T::n_timestamp; i++){
       #pragma unroll
       for (int x = 0; x < CONFIG_T::n_out; x++) {
@@ -325,7 +323,7 @@ template<class data_T, class res_T,class CONFIG_T ,class WEIGHT_T>
     }
     inputs[CONFIG_T::n_timestamp-1]=input0;
 
-    #pragma unroll TIMESTAMP_UNROLLING
+    #pragma unroll 
     for (int i=0; i < CONFIG_T::n_timestamp; i++){
       #pragma unroll
       for (int x = 0; x < CONFIG_T::n_out; x++) {

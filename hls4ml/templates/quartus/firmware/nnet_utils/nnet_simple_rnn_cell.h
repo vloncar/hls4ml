@@ -7,9 +7,7 @@
 #ifndef SIMULATION_TIMES
   #define SIMULATION_TIMES 1
 #endif
-#ifndef TIMESTAMP_UNROLLING
-  #define TIMESTAMP_UNROLLING
-#endif
+
 
 namespace nnet {
 
@@ -33,7 +31,7 @@ struct simpleRNN_config {
 
 
 //----------------------
-// COMUM CODE
+// COMMOM CODE
 //----------------------
 
 template<class data_T, typename res_T, typename CONFIG_T, class WEIGHT_T>
@@ -170,7 +168,7 @@ template<class data_T, class res_T, typename CONFIG_T, class WEIGHT_T>
         }
       }
 
-    #pragma unroll TIMESTAMP_UNROLLING
+    #pragma unroll 
     for (int i=0; i < CONFIG_T::n_timestamp; i++){
       #pragma unroll
       for (int x = 0; x < CONFIG_T::n_out; x++) {
@@ -230,7 +228,7 @@ template<class data_T, class res_T, typename CONFIG_T, class WEIGHT_T>
     }
     inputs[CONFIG_T::n_timestamp-1]=input0;
 
-    #pragma unroll TIMESTAMP_UNROLLING
+    #pragma unroll 
     for (int i=0; i < CONFIG_T::n_timestamp; i++){
       #pragma unroll
       for (int x = 0; x < CONFIG_T::n_out; x++) {
