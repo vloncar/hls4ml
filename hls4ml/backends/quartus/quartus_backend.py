@@ -238,17 +238,6 @@ class QuartusBackend(FPGABackend):
             self.set_closest_reuse_factor(layer, n_in_recr, n_out_recr, attribute='recurrent_reuse_factor')
             layer.set_attr('strategy', 'resource')
 
-    @layer_optimizer(SimpleRNN)
-    def init_simplernn(self, layer):
-        weights_data = layer.model.get_weights_data(layer.name, 'kernel')
-        rec_weights_data = layer.model.get_weights_data(layer.name, 'recurrent_kernel')
-        bias_data = layer.model.get_weights_data(layer.name, 'bias')
-
-        layer.add_weights_variable(name='weight', var_name='kernel_{index}' , data=weights_data[0][0:layer.get_attr('n_out')], quantizer=layer.get_attr('weight_quantizer'), compression=None)
-        layer.add_weights_variable(name='recurrent_weight', var_name='recurrent_kernel_{index}', data=rec_weights_data[0:layer.get_attr('n_out'),0:layer.get_attr('n_out')], quantizer=layer.get_attr('weight_quantizer'), compression=None)
-        layer.add_weights_variable(name='bias', var_name='bias_{index}', data=bias_data[0:layer.get_attr('n_out')], quantizer=layer.get_attr('weight_quantizer'), compression=None)
-
-
     @layer_optimizer(LSTM)
     def init_lstm(self, layer):
         # TODO Allow getting recurrent reuse factor from the config
