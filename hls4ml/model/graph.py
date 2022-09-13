@@ -172,9 +172,6 @@ class HLSConfig(object):
         return compression
 
     def get_sliding_window(self, layer):
-        config = self.config['HLSConfig']
-        print("CONFIGURATION FILE: ", config)
-
         try:
             try:
                 sliding_window = self.config['HLSConfig'].get('LayerName', {}).get('lstm', None).get('Sliding_window', None)
@@ -183,7 +180,6 @@ class HLSConfig(object):
         except:
             sliding_window = False
 
-        print(sliding_window)
         return sliding_window
 
     def _parse_hls_config(self):
