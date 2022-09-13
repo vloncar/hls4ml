@@ -931,7 +931,7 @@ class LSTM(Layer):
             state_shape = [self.attributes['n_out']]
             state_dims = ['N_OUT_{}'.format(self.index)]
             self.add_output_variable(state_shape, state_dims, out_name=self.outputs[1], var_name='layer{index}_h', type_name='layer{index}_h_t')
-            self.add_output_variable(state_shape, state_dims, out_name=self.outputs[2], var_name='layer{index}_c', type_name='layer{index}_c_t')        
+            self.add_output_variable(state_shape, state_dims, out_name=self.outputs[2], var_name='layer{index}_c', type_name='layer{index}_c_t')
 
         #weights
         self.add_weights()
@@ -1014,7 +1014,8 @@ class GarNet(Layer):
         else:
             shape = [self.attributes['n_vertices'], self._output_features]
             dims = ['VERTICES_{}'.format(self.index),'OUT_FEATURES_{}'.format(self.index)]
-            
+            partition_factor = self._output_features * (self.attributes['n_vertices'] // reuse_factor)
+
         self.add_output_variable(shape, dims)
 
     def _initialize_transforms(self):
