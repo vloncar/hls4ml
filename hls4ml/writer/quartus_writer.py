@@ -795,7 +795,7 @@ class QuartusWriter(Writer):
 
     def __get_table_size(self, model, activation):
         for layer in model.get_layers():
-            if layer.get_attr('activation') == activation and layer.get_attr('table_size') is not None:
+            if layer.get_attr('activation') == activation or layer.get_attr('recurrent_activation') == activation  and layer.get_attr('table_size') is not None:
                 return layer.get_attr('table_size')
         return 1024
 
@@ -850,21 +850,7 @@ class QuartusWriter(Writer):
         MIN_VALUE = 0
 
         table_name = 'tanh_table'
-        table_size = None
-        for layer in model.get_layers():
-            if layer.get_attr('activation') == 'tanh':
-                layer_activation = 'dense_tanh'
-            else:
-                layer_activation= layer.get_attr('activation')
-            if layer.get_attr('recurrent_activation') == 'tanh':
-                layer_rec_activation  = 'dense_tanh'
-            else:
-                layer_rec_activation = layer.get_attr('recurrent_activation')
-
-            if ((layer_activation == 'dense_tanh') or (layer_rec_activation == 'dense_tanh')) and (layer.get_attr('table_size') is not None):
-                table_size = layer.get_attr('table_size')
-        if table_size is None: 
-            table_size = 1024
+        table_size = self.__get_table_size(model, 'tanh')
 
         h_file = open('{}/{}.tb'.format(path, table_name), 'w')
         h_file.write(self.__get_table_header(table_name, table_size))
@@ -1183,120 +1169,6 @@ class QuartusWriter(Writer):
         with tarfile.open(model.config.get_output_dir() + '.tar.gz', mode='w:gz') as archive:
             archive.add(model.config.get_output_dir(), recursive=True)
 
-    def write_activation_lstm(self, model):
-        ###################
-        # Activation function
-        ###################
-
-        dstpath = './{}/firmware/nnet_utils/nnet_lstm_cell.h'.format(model.config.get_output_dir())
-        activation_lstm = 0
-
-        for layer in model.get_layers():
-
-            if(activation_lstm == 1):
-                if layer.get_attr('activation') == 'tanh':
-                        layer_activation = 'dense_tanh'
-                else:
-                    layer_activation = layer.get_attr('activation')
-
-                if layer.get_attr('recurrent_activation') == 'tanh':
-                        layer_rec_activation  = 'dense_tanh'
-                else:
-                    layer_rec_activation = layer.get_attr('recurrent_activation')
-
-                activation_lstm += 1
-            else:
-                activation_lstm += 1
-
-        with open(dstpath, "r") as myfile:
-            my_lines = myfile.readlines()
-        taille_my_lines = len(my_lines)
-
-        i = 0
-        while i < taille_my_lines:
-
-            actv_gate_f = my_lines[i].find('//hls_fpga insert activation  --- Forget Gate')
-            actv_gate_c = my_lines[i].find('//hls_fpga insert activation  --- Gate C')
-
-            rec_actv_gate_i = my_lines[i].find('//hls_fpga insert recurrent_activation --- Gate I')
-            rec_actv_gate_f = my_lines[i].find('//hls_fpga insert recurrent_activation --- Gate F')
-            rec_actv_gate_o = my_lines[i].find('//hls_fpga insert recurrent_activation  --- Gate O')
-
-            if actv_gate_f != -1:
-                res = "\t\t\t\t//hls_fpga insert activation  --- Forget Gate\n\t\t\t\tnnet::" + layer_activation + "<data_T,data_T,typename CONFIG_T::activ_config>(cell_act_add, gate_forget); //activation\n"
-            elif actv_gate_c != -1:
-                res = "\t\t\t\t//hls_fpga insert activation  --- Gate C\n\t\t\t\tnnet::" + layer_activation + "<data_T,data_T,typename CONFIG_T::activ_config>(c_afterAdd, gate_c);  //activation\n"
-
-            elif rec_actv_gate_i != -1:
-                res = "\t\t\t\t//hls_fpga insert recurrent_activation --- Gate I\n\t\t\t\tnnet::" + layer_rec_activation + "<data_T,data_T,typename CONFIG_T::activ_config>(i_afterAdd, gate_i);  //recurrent_activation\n"
-            elif rec_actv_gate_f != -1:
-                res = "\t\t\t\t//hls_fpga insert recurrent_activation --- Gate F\n\t\t\t\tnnet::" + layer_rec_activation + "<data_T,data_T,typename CONFIG_T::activ_config>(f_afterAdd, gate_f);  //recurrent_activation\n"
-            elif rec_actv_gate_o != -1:
-                res = "\t\t\t\t//hls_fpga insert recurrent_activation  --- Gate O\n\t\t\t\tnnet::" + layer_rec_activation + "<data_T,data_T,typename CONFIG_T::activ_config>(o_afterAdd, gate_o); // recurrent_activation\n"
-            else:
-                res = my_lines[i]
-
-            my_lines[i] = res
-            i += 1
-
-        with open(dstpath, "w") as myfile:
-            myfile.writelines(my_lines)
-
-
-    def write_activation_simple_rnn(self, model):
-        ###################
-        # Activation function
-        ###################
-
-        dstpath = './{}/firmware/nnet_utils/nnet_simple_rnn_cell.h'.format(model.config.get_output_dir())
-        activation_simple_rnn = 0
-
-        for layer in model.get_layers():
-
-            if(activation_simple_rnn == 1):
-                if layer.get_attr('activation') == 'tanh':
-                        layer_activation = 'dense_tanh'
-                else:
-                    layer_activation = layer.get_attr('activation')
-                activation_simple_rnn += 1
-            else:
-                activation_simple_rnn += 1
-
-        with open(dstpath, "r") as myfile:
-            my_lines = myfile.readlines()
-        taille_my_lines = len(my_lines)
-
-        i = 0
-        while i < taille_my_lines:
-
-            actv_gate_f = my_lines[i].find('//hls_fpga insert activation')
-
-
-            if actv_gate_f != -1:
-                res = "\t\t\t\tnnet::" + layer_activation + "<simpleRNN_config::fixed_p_internal_t,data_T,typename CONFIG_T::activ_config>(afterAdd, h); \n"
-            else:
-                res = my_lines[i]
-
-            my_lines[i] = res
-            i += 1
-
-        with open(dstpath, "w") as myfile:
-            myfile.writelines(my_lines)
-
-    def write_rnn(self, model):
-        if hasattr(model, '_class_name'):
-            if(model._class_name == 'LSTM'):
-                name = 'nnet_lstm_cell'
-                self.write_activation_lstm(model)
-
-            elif(model._class_name == 'SimpleRNN'):
-                name = 'nnet_simple_rnn_cell'
-                self.write_activation_simple_rnn(model)
-            else:
-                pass
-        else: 
-            pass
-
 
     def write_hls(self, model):
         print('Writing HLS project')
@@ -1310,7 +1182,6 @@ class QuartusWriter(Writer):
         self.write_bridge(model)
         self.write_build_script(model)
         self.write_nnet_utils(model)
-        self.write_rnn(model)
         self.write_activation_tables(model)
         self.write_yml(model)
         self.write_tar(model)

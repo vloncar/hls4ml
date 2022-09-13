@@ -11,7 +11,7 @@ namespace nnet {
 // COMMOM CODE
 //----------------------
 
-template<class data_T, class res_T,typename CONFIG_T,class WEIGHT_T>
+template<class data_T, class res_T,typename CONFIG_T, class WEIGHT_T>
 void multiply_W(data_T input, res_T out[CONFIG_T::n_out], const WEIGHT_T weight[CONFIG_T::n_out]) {
 
     MULTIPLY_W_LOOP:
@@ -91,6 +91,7 @@ struct gru_config {
     static const unsigned reuse_factor = 1;
     static const bool store_weights_in_bram = false;
     
+    // Activation
     template<class x_T, class y_T, class config_T>
     using activation_recr = nnet::activation::relu<x_T, y_T, config_T>;
     
@@ -128,7 +129,7 @@ void gru_cell(
 
     // Activation on z(t) and r(t)
     hls_register typename CONFIG_T::accum_t z_r_act [2*CONFIG_T::n_units]; 
-    CONFIG_T::template activation_recr<typename CONFIG_T::accum_t, typename CONFIG_T::weight_t, typename CONFIG_T::ACT_CONFIG_RECURRENT_T>::activation(z_r, z_r_act);
+    CONFIG_T::template activation_recr<typename CONFIG_T::accum_t, typename CONFIG_T::accum_t, typename CONFIG_T::ACT_CONFIG_RECURRENT_T>::activation(z_r, z_r_act);
 
     // A matrix containing the values of Hadamard product between r(t) = z_r_act[n_units:2*n_units] and h(t-1) = h
     hls_register typename CONFIG_T::accum_t hadamard_r_h[CONFIG_T::n_units];
@@ -147,7 +148,7 @@ void gru_cell(
 
     // Activation on candidate state
     hls_register typename CONFIG_T::accum_t h_cand_act[CONFIG_T::n_units]; 
-    CONFIG_T::template activation<typename CONFIG_T::accum_t, typename CONFIG_T::weight_t, typename CONFIG_T::ACT_CONFIG_T>::activation(h_cand, h_cand_act);
+    CONFIG_T::template activation<typename CONFIG_T::accum_t, typename CONFIG_T::accum_t, typename CONFIG_T::ACT_CONFIG_T>::activation(h_cand, h_cand_act);
 
     // Update state
     #pragma unroll recurrent_unroll_factor
@@ -201,140 +202,135 @@ void gru(
     }
 }
 
-
 //----------------------
 // SimpleRNN
 //----------------------
 
-struct simple_rnn_activ_config {
-    static const unsigned n_in = 8;
-    static const unsigned table_size = 1024;
-    typedef ac_fixed<16,8> table_t;
-};
-
 struct simpleRNN_config {
-  static const unsigned n_in=1;
-  static const unsigned n_out=8;
-  static const unsigned n_timestamp=5;
-  static const unsigned sliding_window = false;
-  static const unsigned return_sequences = false;
-  typedef ac_fixed<16,6,true> weight_t;
-  typedef ac_fixed<23,3,true> fixed_p_internal_t;
-  typedef simple_rnn_activ_config activ_config;
+    // Internal data type definitions
+    typedef float weight_t;
+    typedef float bias_t;
+    typedef float accum_t;
 
+    // Layer Sizes
+    static const unsigned n_in =  1;
+    static const unsigned n_out = 1;
+    static const unsigned n_timestamp = 1;
+    static const bool return_sequences = false;
+    static const bool sliding_window = false;
+
+    // Resource reuse info
+    static const unsigned io_type = io_parallel;
+    static const unsigned reuse_factor = 1;
+    static const bool store_weights_in_bram = false;
+
+    // Activation
+    template<class x_T, class y_T, class config_T>
+    using activation_recr = nnet::activation::relu<x_T, y_T, config_T>;
+    
+    template<class x_T, class y_T, class config_T>
+    using activation = nnet::activation::relu<x_T, y_T, config_T>;
 };
-
 
 template<class data_T, typename CONFIG_T, typename WEIGHT_T>
 void simpleRNN_cell(
-          data_T hidden_state[CONFIG_T::n_out][CONFIG_T::n_timestamp + 1],
-          data_T hidden_state_o[CONFIG_T::n_out],
-          data_T inputs,
-          const WEIGHT_T kernel[CONFIG_T::n_in*CONFIG_T::n_out],
-          const WEIGHT_T rec_kernel[CONFIG_T::n_out*CONFIG_T::n_out],
-          const WEIGHT_T bias[CONFIG_T::n_out]){
+    data_T hidden_state[CONFIG_T::n_out][CONFIG_T::n_timestamp + 1],
+    data_T hidden_state_o[CONFIG_T::n_out],
+    data_T inputs,
+    const typename CONFIG_T::weight_t kernel[CONFIG_T::n_in * CONFIG_T::n_out],
+    const typename CONFIG_T::weight_t rec_kernel[CONFIG_T::n_out * CONFIG_T::n_out],
+    const typename CONFIG_T::bias_t bias[CONFIG_T::n_out]
+){
+    // Weight multiplication
+    typename CONFIG_T::accum_t afterW[CONFIG_T::n_out] hls_register;
+    multiply_W<data_T, typename CONFIG_T::accum_t, CONFIG_T, WEIGHT_T>(inputs, afterW, kernel);
 
-        //----------------------
-        //Internals definitions
-        //----------------------
+    // Bias addition
+    typename CONFIG_T::accum_t afterBias[CONFIG_T::n_out] hls_register;
+    add_bias<typename CONFIG_T::accum_t, CONFIG_T, WEIGHT_T>(afterW, afterBias, bias);
 
-        // Gate outputs
+    // Hidden
+    typename CONFIG_T::accum_t hiddenCand[CONFIG_T::n_out] hls_register;
+    multiply_U<data_T, typename CONFIG_T::accum_t, CONFIG_T, WEIGHT_T>(hidden_state, hiddenCand, rec_kernel);
 
-        //Weight multiplication
-        typename simpleRNN_config::fixed_p_internal_t afterW[CONFIG_T::n_out] hls_register;
-        multiply_W<data_T,simpleRNN_config::fixed_p_internal_t,CONFIG_T,WEIGHT_T>(inputs, afterW, kernel);
+    typename CONFIG_T::accum_t afterAdd[CONFIG_T::n_out];
+    add_vectors<typename CONFIG_T::accum_t, CONFIG_T>(afterBias, hiddenCand, afterAdd);
 
-        //Bias addition
-        typename simpleRNN_config::fixed_p_internal_t afterBias[CONFIG_T::n_out] hls_register;
-        add_bias<simpleRNN_config::fixed_p_internal_t,CONFIG_T,WEIGHT_T>(afterW,afterBias, bias);
-
-        //hidden
-        typename simpleRNN_config::fixed_p_internal_t hiddenCand[CONFIG_T::n_out] hls_register;
-        multiply_U<data_T,simpleRNN_config::fixed_p_internal_t,CONFIG_T,WEIGHT_T>(hidden_state, hiddenCand, rec_kernel);
-
-        typename simpleRNN_config::fixed_p_internal_t afterAdd[CONFIG_T::n_out];
-        add_vectors<simpleRNN_config::fixed_p_internal_t, CONFIG_T>(afterBias, hiddenCand, afterAdd);
-
-        data_T h[CONFIG_T::n_out];
-
-        //Activation
-        //hls_fpga insert activation
-
-       OUTPUT_WRITE_LOOP:
-        #pragma unroll
-        for (int x = 0; x < CONFIG_T::n_out; x++) {
-          hidden_state_o[x]=h[x];
-        }
-        return;
+    // Activation
+    CONFIG_T::template activation_recr<typename CONFIG_T::accum_t, data_T, typename CONFIG_T::ACT_CONFIG_RECURRENT_T>::activation(hiddenCand, hidden_state_o);
 }
 
 template<class data_T, class res_T, typename CONFIG_T, class WEIGHT_T>
-  void simple_rnn_network(data_T input0[CONFIG_T::n_timestamp*CONFIG_T::n_in], res_T res[CONFIG_T::n_timestamp*CONFIG_T::n_out],
-  const WEIGHT_T kernel[CONFIG_T::n_in*CONFIG_T::n_out], const WEIGHT_T rec_kernel[CONFIG_T::n_out*CONFIG_T::n_out], const WEIGHT_T bias[CONFIG_T::n_out]){
-
+void simple_rnn_network(
+    data_T input0[CONFIG_T::n_timestamp * CONFIG_T::n_in], 
+    res_T res[CONFIG_T::n_timestamp * CONFIG_T::n_out],
+    const typename CONFIG_T::weight_t kernel[CONFIG_T::n_in * CONFIG_T::n_out],
+    const typename CONFIG_T::weight_t rec_kernel[CONFIG_T::n_out * CONFIG_T::n_out],
+    const typename CONFIG_T::bias_t bias[CONFIG_T::n_out]
+){
     data_T hidden_state[CONFIG_T::n_out][CONFIG_T::n_timestamp + 1] hls_register;
     data_T hidden_state_temp[CONFIG_T::n_out] hls_register;
     data_T h[CONFIG_T::n_out] hls_register;
 
-    static data_T inputs[CONFIG_T::n_timestamp*CONFIG_T::n_in] hls_register;
+    static data_T inputs[CONFIG_T::n_timestamp * CONFIG_T::n_in] hls_register;
 
     INIT_LOOP:
     #pragma unroll
     for (int x = 0; x < CONFIG_T::n_out; x++) {
-      hidden_state[x][0]=0;
+        hidden_state[x][0]=0;
     }
 
     #pragma unroll
-    #pragma ivdep
- 
-    //Input dimention
-
-      for (int j=0; j<CONFIG_T::n_timestamp; j++){
-        for (int z=0; z<CONFIG_T::n_in; z++){
-          inputs[z* CONFIG_T::n_in + j] = input0[z * CONFIG_T::n_in + j];
+    for (int j = 0; j < CONFIG_T::n_timestamp; j++){
+        #pragma unroll
+        for (int z = 0; z < CONFIG_T::n_in; z++){
+            inputs[z * CONFIG_T::n_in + j] = input0[z * CONFIG_T::n_in + j];
         }
-      }
-
-    #pragma unroll 
-    for (int i=0; i < CONFIG_T::n_timestamp; i++){
-      #pragma unroll
-      for (int x = 0; x < CONFIG_T::n_out; x++) {
-        hidden_state_temp[x] = hidden_state[x][i];
-      }
-
-      for (int j=0; j<CONFIG_T::n_in; j++){
-        simpleRNN_cell<data_T,CONFIG_T,WEIGHT_T>(hidden_state_temp,h,inputs[i], kernel, rec_kernel, bias);
-      }
-
-      #pragma unroll
-      for (int x = 0; x < CONFIG_T::n_out; x++) {
-        hidden_state[x][i+1]=h[x];
-      }
     }
 
+    #pragma disable_loop_pipelining
+    for (int i = 0; i < CONFIG_T::n_timestamp; i++){
+        #pragma unroll
+        for (int x = 0; x < CONFIG_T::n_out; x++) {
+            hidden_state_temp[x] = hidden_state[x][i];
+        }
+
+        for (int j = 0; j < CONFIG_T::n_in; j++){
+            simpleRNN_cell<data_T, CONFIG_T, WEIGHT_T>(hidden_state_temp,h,inputs[i], kernel, rec_kernel, bias);
+        }
+
+        #pragma unroll
+        for (int x = 0; x < CONFIG_T::n_out; x++) {
+            hidden_state[x][i+1]=h[x];
+        }
+    }
 
     if(CONFIG_T::return_sequences == 0){
-      //Output when return_sequences is false 
-      #pragma unroll           
-      for (int x = 0; x < CONFIG_T::n_out; x++) {
-        res[x]= hidden_state[x][CONFIG_T::n_timestamp];
-      }
-    }
-    else{
-      //Output when return_sequences is true
-      #pragma unroll
-      for(int x = 0; x < CONFIG_T::n_timestamp; x++){ 
-        for(int h = 0; h < CONFIG_T::n_out; h++){
-            res[x + h * CONFIG_T::n_out ] = hidden_state[h][x+1];
+        //Output when return_sequences is false 
+        #pragma unroll           
+        for (int x = 0; x < CONFIG_T::n_out; x++) {
+          res[x]= hidden_state[x][CONFIG_T::n_timestamp];
         }
-      }
+    } else {
+        //Output when return_sequences is true
+        #pragma unroll
+        for(int x = 0; x < CONFIG_T::n_timestamp; x++){ 
+          #pragma unroll
+          for(int h = 0; h < CONFIG_T::n_out; h++){
+              res[x + h * CONFIG_T::n_out ] = hidden_state[h][x+1];
+          }
+        }
     }
-  }
+}
 
 template<class data_T, class res_T, typename CONFIG_T, class WEIGHT_T>
-  void simple_rnn_network(data_T input0, res_T res[CONFIG_T::n_timestamp*CONFIG_T::n_out],
-  const WEIGHT_T kernel[CONFIG_T::n_in*CONFIG_T::n_out], const WEIGHT_T rec_kernel[CONFIG_T::n_out*CONFIG_T::n_out], const WEIGHT_T bias[CONFIG_T::n_out]){
-
+void simple_rnn_network(
+    data_T input0, 
+    res_T res[CONFIG_T::n_timestamp * CONFIG_T::n_out],
+    const typename CONFIG_T::weight_t kernel[CONFIG_T::n_in * CONFIG_T::n_out],
+    const typename CONFIG_T::weight_t rec_kernel[CONFIG_T::n_out * CONFIG_T::n_out],
+    const typename CONFIG_T::bias_t bias[CONFIG_T::n_out]
+){
     data_T hidden_state[CONFIG_T::n_out][CONFIG_T::n_timestamp + 1] hls_register;
     data_T hidden_state_temp[CONFIG_T::n_out] hls_register;
     data_T h[CONFIG_T::n_out] hls_register;
@@ -344,29 +340,28 @@ template<class data_T, class res_T, typename CONFIG_T, class WEIGHT_T>
     INIT_LOOP:
     #pragma unroll
     for (int x = 0; x < CONFIG_T::n_out; x++) {
-      hidden_state[x][0]=0;
+        hidden_state[x][0]=0;
     }
 
     #pragma unroll
-    #pragma ivdep
-
-    for (int j=1;j<CONFIG_T::n_timestamp; j++){
-      inputs[j-1] = inputs[j];
+    for (int j = 1;j < CONFIG_T::n_timestamp; j++){
+        inputs[j - 1] = inputs[j];
     }
-    inputs[CONFIG_T::n_timestamp-1]=input0;
+    inputs[CONFIG_T::n_timestamp - 1] = input0;
 
     #pragma unroll 
     for (int i=0; i < CONFIG_T::n_timestamp; i++){
-      #pragma unroll
-      for (int x = 0; x < CONFIG_T::n_out; x++) {
-        hidden_state_temp[x] = hidden_state[x][i];
-      }
+        #pragma unroll
+        for (int x = 0; x < CONFIG_T::n_out; x++) {
+            hidden_state_temp[x] = hidden_state[x][i];
+        }
 
-      simpleRNN_cell<data_T,CONFIG_T,WEIGHT_T>(hidden_state_temp,h,inputs[i], kernel, rec_kernel, bias);
-      #pragma unroll
-      for (int x = 0; x < CONFIG_T::n_out; x++) {
-        hidden_state[x][i+1]=h[x];
-      }
+        simpleRNN_cell<data_T,CONFIG_T,WEIGHT_T>(hidden_state_temp, h, inputs[i], kernel, rec_kernel, bias);
+        
+        #pragma unroll
+        for (int x = 0; x < CONFIG_T::n_out; x++) {
+            hidden_state[x][i+1]=h[x];
+        }
     }
 
 
@@ -381,6 +376,7 @@ template<class data_T, class res_T, typename CONFIG_T, class WEIGHT_T>
       //Output when return_sequences is true
       #pragma unroll
       for(int x = 0; x < CONFIG_T::n_timestamp; x++){ 
+        #pragma unroll
         for(int h = 0; h < CONFIG_T::n_out; h++){
             res[x + h * CONFIG_T::n_out ] = hidden_state[h][x+1];
         }
@@ -392,37 +388,55 @@ template<class data_T, class res_T, typename CONFIG_T, class WEIGHT_T>
 // LSTM 
 //----------------------
 
-struct lstm_activ_config {
-    static const unsigned n_in = 10;
-    static const unsigned table_size = 1024;
-    typedef ac_fixed<16,8> table_t;
-};
-
 struct lstm_config {
-  static const unsigned n_in=1;
-  static const unsigned n_out=10;
-  static const unsigned sliding_window = false;
-  static const unsigned return_sequences = false;
-  typedef ac_fixed<16,6,true> weight_t;
-  typedef lstm_activ_config activ_config;
+  // Internal data type definitions
+  typedef float weight_t;
+  typedef float bias_t;
+  typedef float accum_t;
+
+  // Layer Sizes
+  static const unsigned n_in =  1;
+  static const unsigned n_out = 1;
+  static const unsigned n_timestamp = 1;
+  static const bool return_sequences = false;
+  static const bool sliding_window = false;
+
+  // Resource reuse info
+  static const unsigned io_type = io_parallel;
+  static const unsigned reuse_factor = 1;
+  static const bool store_weights_in_bram = false;
+
+  // Activation
+  template<class x_T, class y_T, class config_T>
+  using activation_recr = nnet::activation::relu<x_T, y_T, config_T>;
+    
+  template<class x_T, class y_T, class config_T>
+  using activation = nnet::activation::relu<x_T, y_T, config_T>;
 
 };
 
 template<class data_T, typename CONFIG_T, typename WEIGHT_T>
-  void lstm_cell(
-        data_T hidden_state[CONFIG_T::n_out][CONFIG_T::n_timestamp + 1],
-        data_T hidden_state_o[CONFIG_T::n_out],
-        data_T cell_state[CONFIG_T::n_out][CONFIG_T::n_timestamp + 1],
-        data_T cell_state_o[CONFIG_T::n_out],
-        data_T inputs,
-        const WEIGHT_T WI[CONFIG_T::n_in*CONFIG_T::n_out], const WEIGHT_T WF[CONFIG_T::n_in*CONFIG_T::n_out], const WEIGHT_T WC[CONFIG_T::n_in*CONFIG_T::n_out], const WEIGHT_T WO[CONFIG_T::n_in*CONFIG_T::n_out],
-        const WEIGHT_T RWI[CONFIG_T::n_out*CONFIG_T::n_out], const WEIGHT_T RWF[CONFIG_T::n_out*CONFIG_T::n_out], const WEIGHT_T RWC[CONFIG_T::n_out*CONFIG_T::n_out], const WEIGHT_T RWO[CONFIG_T::n_out*CONFIG_T::n_out],
-        const WEIGHT_T BI[CONFIG_T::n_out], const WEIGHT_T BF[CONFIG_T::n_out], const WEIGHT_T BC[CONFIG_T::n_out], const WEIGHT_T BO[CONFIG_T::n_out]){
+void lstm_cell(
+    data_T hidden_state[CONFIG_T::n_out],
+    data_T hidden_state_o[CONFIG_T::n_out],
+    data_T cell_state[CONFIG_T::n_out],
+    data_T cell_state_o[CONFIG_T::n_out],
+    data_T inputs,
+    const typename CONFIG_T::weight_t WI[CONFIG_T::n_in*CONFIG_T::n_out], 
+    const typename CONFIG_T::weight_t WF[CONFIG_T::n_in*CONFIG_T::n_out],
+    const typename CONFIG_T::weight_t WC[CONFIG_T::n_in*CONFIG_T::n_out], 
+    const typename CONFIG_T::weight_t WO[CONFIG_T::n_in*CONFIG_T::n_out],
+    const typename CONFIG_T::weight_t RWI[CONFIG_T::n_out*CONFIG_T::n_out], 
+    const typename CONFIG_T::weight_t RWF[CONFIG_T::n_out*CONFIG_T::n_out], 
+    const typename CONFIG_T::weight_t RWC[CONFIG_T::n_out*CONFIG_T::n_out], 
+    const typename CONFIG_T::weight_t RWO[CONFIG_T::n_out*CONFIG_T::n_out],
+    const typename CONFIG_T::bias_t   BI[CONFIG_T::n_out], 
+    const typename CONFIG_T::bias_t   BF[CONFIG_T::n_out], 
+    const typename CONFIG_T::bias_t   BC[CONFIG_T::n_out], 
+    const typename CONFIG_T::bias_t   BO[CONFIG_T::n_out]
+){
 
-    //----------------------
-    //Internals definitions
-    //----------------------
-
+    // Internals definitions
     data_T i_afterW   [CONFIG_T::n_out] ;
     data_T i_afterBias[CONFIG_T::n_out] ;
     data_T c_afterW   [CONFIG_T::n_out] ;
@@ -438,7 +452,7 @@ template<class data_T, typename CONFIG_T, typename WEIGHT_T>
     data_T c_hiddenCand[CONFIG_T::n_out] ;
     data_T o_hiddenCand[CONFIG_T::n_out] ;
 
-    // AfterAddition, intermediate variables
+    // After addition, intermediate variables
     data_T i_afterAdd[CONFIG_T::n_out] ;
     data_T f_afterAdd[CONFIG_T::n_out] ;
     data_T c_afterAdd[CONFIG_T::n_out] ;
@@ -455,7 +469,7 @@ template<class data_T, typename CONFIG_T, typename WEIGHT_T>
     data_T h[CONFIG_T::n_out] ;
 
 
-    //intermediate variable cell calculation
+    // intermediate variable cell calculation
     data_T cell_act_multp[CONFIG_T::n_out] ;
     data_T cell_act_add[CONFIG_T::n_out] ;
 
@@ -469,7 +483,8 @@ template<class data_T, typename CONFIG_T, typename WEIGHT_T>
     multiply_U<data_T,data_T,CONFIG_T,WEIGHT_T>(hidden_state, i_hiddenCand, RWI);
     add_vectors<data_T,data_T,CONFIG_T>(i_afterBias, i_hiddenCand, i_afterAdd);
     //Activation
-    //hls_fpga insert recurrent_activation --- Gate I
+    CONFIG_T::template activation_recr<data_T, data_T, typename CONFIG_T::ACT_CONFIG_RECURRENT_T>::activation(i_afterAdd, gate_i);
+
 
 
     //-----------Gate F Calculations
@@ -481,7 +496,7 @@ template<class data_T, typename CONFIG_T, typename WEIGHT_T>
     multiply_U<data_T,data_T,CONFIG_T,WEIGHT_T>(hidden_state, f_hiddenCand, RWF);
     add_vectors<data_T,data_T,CONFIG_T>(f_afterBias, f_hiddenCand, f_afterAdd);
     //Activation
-    //hls_fpga insert recurrent_activation --- Gate F
+    CONFIG_T::template activation_recr<data_T, data_T, typename CONFIG_T::ACT_CONFIG_RECURRENT_T>::activation(f_afterAdd, gate_f);
 
 
     //-----------Gate C Calculations
@@ -493,7 +508,7 @@ template<class data_T, typename CONFIG_T, typename WEIGHT_T>
     multiply_U<data_T,data_T,CONFIG_T,WEIGHT_T>(hidden_state, c_hiddenCand, RWC);
     add_vectors<data_T,data_T,CONFIG_T>(c_afterBias, c_hiddenCand, c_afterAdd);
     //Activation
-    //hls_fpga insert activation  --- Gate C
+    CONFIG_T::template activation<data_T, data_T, typename CONFIG_T::ACT_CONFIG_RECURRENT_T>::activation(c_afterAdd, gate_c);
 
 
     //-----------gate I and C multiply
@@ -504,7 +519,7 @@ template<class data_T, typename CONFIG_T, typename WEIGHT_T>
     add_bias<data_T,data_T,CONFIG_T,WEIGHT_T>(o_afterW, o_afterBias, BO);
     multiply_U<data_T,data_T,CONFIG_T,WEIGHT_T>(hidden_state, o_hiddenCand, RWO);
     add_vectors<data_T,data_T,CONFIG_T>(o_afterBias, o_hiddenCand, o_afterAdd);
-    //hls_fpga insert recurrent_activation  --- Gate O
+    CONFIG_T::template activation_recr<data_T, data_T, typename CONFIG_T::ACT_CONFIG_RECURRENT_T>::activation(o_afterAdd, gate_o);
 
 
     //-----------Cell State Calculation
@@ -512,7 +527,7 @@ template<class data_T, typename CONFIG_T, typename WEIGHT_T>
     add_vectors<data_T,data_T,CONFIG_T>(gate_ic, cell_act_multp, cell_act_add);
 
     //-----------Forget gate Calculation
-    //hls_fpga insert activation  --- Forget Gate
+    CONFIG_T::template activation<data_T, data_T, typename CONFIG_T::ACT_CONFIG_RECURRENT_T>::activation(cell_act_add, gate_forget);
 
     multiply_vectors<data_T,data_T,CONFIG_T>(gate_o, gate_forget, h);
 
@@ -569,7 +584,7 @@ template<class data_T, class res_T,class CONFIG_T ,class WEIGHT_T>
       }
 
       for (int j=0; j<CONFIG_T::n_in; j++){
-        lstm_cell<data_T,CONFIG_T,WEIGHT_T>(hidden_state_temp,h,cell_state_temp,c,inputs[i + j* CONFIG_T::n_in],WI,WF,WC,WO,RWI,RWF,RWC,RWO,BI,BF,BC,BO);
+        lstm_cell<data_T,CONFIG_T,WEIGHT_T>(hidden_state_temp, h, cell_state_temp, c, inputs[i + j* CONFIG_T::n_in],WI,WF,WC,WO,RWI,RWF,RWC,RWO,BI,BF,BC,BO);
       }
     
       #pragma unroll
