@@ -870,7 +870,7 @@ class QuartusWriter(Writer):
         h_file.write(self.__get_table_header(table_name, table_size))
 
         sep = ''
-        for i in range(table_size):
+        for i in range(int(table_size)):
             in_val = i * (MAX_VALUE - MIN_VALUE) / float(table_size) + (MAX_VALUE - MIN_VALUE) / (
                         float(table_size) * 2) + MIN_VALUE
             real_val = np.tanh(in_val)

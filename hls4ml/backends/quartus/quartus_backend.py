@@ -30,21 +30,21 @@ class QuartusBackend(FPGABackend):
             SimpleRNN: [Attribute('recurrent_reuse_factor', default=1)],
             LSTM: [
                 Attribute('recurrent_reuse_factor', default=1),
-                TypeAttribute('weight_i'),
-                TypeAttribute('bias_i'),
-                TypeAttribute('recurrent_weight_i'),
+                #TypeAttribute('weight_i'),
+                # TypeAttribute('bias_i'),
+                # TypeAttribute('recurrent_weight_i'),
 
-                TypeAttribute('weight_f'),
-                TypeAttribute('bias_f'),
-                TypeAttribute('recurrent_weight_f'),
+                # TypeAttribute('weight_f'),
+                # TypeAttribute('bias_f'),
+                # TypeAttribute('recurrent_weight_f'),
 
-                TypeAttribute('weight_c'),
-                TypeAttribute('bias_c'),
-                TypeAttribute('recurrent_weight_c'),
+                # TypeAttribute('weight_c'),
+                # TypeAttribute('bias_c'),
+                # TypeAttribute('recurrent_weight_c'),
 
-                TypeAttribute('weight_o'),
-                TypeAttribute('bias_o'),
-                TypeAttribute('recurrent_weight_o'),
+                # TypeAttribute('weight_o'),
+                # TypeAttribute('bias_o'),
+                # TypeAttribute('recurrent_weight_o'),
             ],
             GRU: [Attribute('recurrent_reuse_factor', default=1)],
         }
@@ -258,15 +258,15 @@ class QuartusBackend(FPGABackend):
         index_t = IntegerPrecisionType(width=1, signed=False)
         layer.set_attr('index_t', index_t)
 
-        weights_data = self.model.get_weights_data(self.name, 'kernel')
-        rec_weights_data = self.model.get_weights_data(self.name, 'recurrent_kernel')
-        bias_data = self.model.get_weights_data(self.name, 'bias')
+        weights_data = layer.weights['weight'].data
+        rec_weights_data = layer.weights['recurrent_weight'].data
+        bias_data = layer.weights['bias'].data
 
         weight_types=["i","f","c","o"]
         for i in range (0,4):
-          self.add_weights_variable(name='weight_{}'.format(weight_types[i]), var_name='kernel_{}_{{index}}'.format(weight_types [i]) , data=weights_data[0][i*self.get_attr('n_out'):(i+1)*(self.get_attr('n_out'))], quantizer=self.get_attr('weight_quantizer'), compression=None)
-          self.add_weights_variable(name='recurrent_weight_{}'.format( weight_types [i] ), var_name='recurrent_kernel_{}_{{index}}'.format(weight_types [i]), data=rec_weights_data[0:self.get_attr('n_out'),i*self.get_attr('n_out'):(i+1)*(self.get_attr('n_out'))], quantizer=self.get_attr('weight_quantizer'), compression=None)
-          self.add_weights_variable(name='bias_{}'.format(weight_types [i]), var_name='bias_{}_{{index}}'.format(weight_types [i]), data=bias_data[i*self.get_attr('n_out'):(i+1)*(self.get_attr('n_out'))], quantizer=self.get_attr('weight_quantizer'), compression=None)
+          layer.add_weights_variable(name='weight_{}'.format(weight_types[i]), var_name='kernel_{}_{{index}}'.format(weight_types [i]) , data=weights_data[0][i*layer.get_attr('n_out'):(i+1)*(layer.get_attr('n_out'))], quantizer=layer.get_attr('weight_quantizer'), compression=None)
+          layer.add_weights_variable(name='recurrent_weight_{}'.format( weight_types [i] ), var_name='recurrent_kernel_{}_{{index}}'.format(weight_types [i]), data=rec_weights_data[0:layer.get_attr('n_out'),i*layer.get_attr('n_out'):(i+1)*(layer.get_attr('n_out'))], quantizer=layer.get_attr('weight_quantizer'), compression=None)
+          layer.add_weights_variable(name='bias_{}'.format(weight_types [i]), var_name='bias_{}_{{index}}'.format(weight_types [i]), data=bias_data[i*layer.get_attr('n_out'):(i+1)*(layer.get_attr('n_out'))], quantizer=layer.get_attr('weight_quantizer'), compression=None)
 
 
 

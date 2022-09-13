@@ -911,22 +911,6 @@ class LSTM(Layer):
         WeightAttribute('recurrent_weight'),
         WeightAttribute('recurrent_bias'),
 
-        WeightAttribute('weight_i'),
-        WeightAttribute('bias_i'),
-        WeightAttribute('recurrent_weight_i'),
-
-        WeightAttribute('weight_f'),
-        WeightAttribute('bias_f'),
-        WeightAttribute('recurrent_weight_f'),
-
-        WeightAttribute('weight_c'),
-        WeightAttribute('bias_c'),
-        WeightAttribute('recurrent_weight_c'),
-
-        WeightAttribute('weight_o'),
-        WeightAttribute('bias_o'),
-        WeightAttribute('recurrent_weight_o'),
-
         TypeAttribute('weight'),
         TypeAttribute('bias'),
         TypeAttribute('recurrent_weight'),
