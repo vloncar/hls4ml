@@ -24,11 +24,16 @@ def test_report(backend, capsys):
         model, io_type='io_stream', hls_config=config, output_dir=output_dir, part='xc7z020clg400-1', backend=backend
     )
     hls_model.compile()
-    # hls_model.build(synth=True)
+
+    # to actually generate the reports (using Vivado 2020.1)
+    # hls_model.build(synth=True, vsynth=True)
+
+    # copy pregenerated reports
     os.makedirs(f'hls4mlprj_report_{backend}/myproject_prj/solution1/syn/report', exist_ok=True)
     shutil.copy('test_report/vivado_hls.app', f'{output_dir}/myproject_prj/vivado_hls.app')
     shutil.copy('test_report/myproject_csynth.rpt', f'{output_dir}/myproject_prj/solution1/syn/report/myproject_csynth.rpt')
     shutil.copy('test_report/myproject_csynth.xml', f'{output_dir}/myproject_prj/solution1/syn/report/myproject_csynth.xml')
+    shutil.copy('test_report/vivado_synth.rpt', f'{output_dir}/vivado_synth.rpt')
 
     report = hls4ml.report.parse_vivado_report(output_dir)  # or report = hls_model.build(...)
 
@@ -53,5 +58,14 @@ def test_report(backend, capsys):
         + '    DSP48E:   73 / 220 (33.2%)\n'
         + '    FF:       7969 / 106400 (7.5%)\n'
         + '    LUT:      2532 / 53200 (4.8%)\n'
+        + '    URAM:     N/A\n\n'
+        + '======================================================\n'
+        + '== Vivado Synthesis report\n'
+        + '======================================================\n\n'
+        + ' - Resource utilization:\n'
+        + '    BRAM_18K: 0\n'
+        + '    DSP48E:   66\n'
+        + '    FF:       2428\n'
+        + '    LUT:      1526\n'
         + '    URAM:     N/A\n\n'
     )

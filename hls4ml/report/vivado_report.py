@@ -190,9 +190,10 @@ def parse_vivado_report(hls_dir):
                     section = int(match.group(1))
                 # Sometimes, phrases such as 'CLB Registers' can show up in the non-tabular sections of the report
                 if '|' in line:
-                    if 'CLB LUTs' in line and section == 1:
+                    # CLB (2019.X) vs. Slice (2020.X)
+                    if ('CLB LUTs' in line or 'Slice LUTs' in line) and section == 1:
                         vivado_synth_rpt['LUT'] = line.split('|')[2].strip()
-                    elif 'CLB Registers' in line and section == 1:
+                    elif ('CLB Registers' in line or 'Slice Registers' in line) and section == 1:
                         vivado_synth_rpt['FF'] = line.split('|')[2].strip()
                     elif 'Block RAM Tile' in line and section == 2:
                         vivado_synth_rpt['BRAM_18K'] = line.split('|')[2].strip()
