@@ -551,7 +551,7 @@ def _make_report_body(report_dict, make_table_template, make_header_template):
         params['dsp'] = str(dsp) + ' / ' + str(avail_dsp) + ' (' + str(round(dsp / avail_dsp * 100, 1)) + '%)'
         params['ff'] = str(ff) + ' / ' + str(avail_ff) + ' (' + str(round(ff / avail_ff * 100, 1)) + '%)'
         params['lut'] = str(lut) + ' / ' + str(avail_lut) + ' (' + str(round(lut / avail_lut * 100, 1)) + '%)'
-        if 'URAM' in csynth_report:
+        if 'URAM' in csynth_report and avail_uram > 0:
             params['uram'] = str(uram) + ' / ' + str(avail_uram) + ' (' + str(round(uram / avail_uram * 100, 1)) + '%)'
         else:
             params['uram'] = 'N/A'
