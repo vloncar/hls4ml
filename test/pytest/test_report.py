@@ -23,7 +23,7 @@ def test_report(backend, capsys):
     hls_model = hls4ml.converters.convert_from_keras_model(
         model, io_type='io_stream', hls_config=config, output_dir=output_dir, part='xc7z020clg400-1', backend=backend
     )
-    hls_model.compile()
+    hls_model.write()
 
     # to actually generate the reports (using Vivado 2020.1)
     # hls_model.build(synth=True, vsynth=True)
