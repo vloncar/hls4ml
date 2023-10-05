@@ -252,6 +252,10 @@ def pytorch_to_hls(config):
             if operation in layer_name_map:
                 operation = layer_name_map[operation]
 
+            # If the operation ends with "_hls4ml" it means it required special handling and wrapping with torch.fx.wrap
+            # As per convention, we keep the name without the suffix
+            operation = operation.replace('_hls4ml', '')
+
             # only a limited number of functions are supported
             if operation not in supported_layers:
                 raise Exception(f'Unsupported function {operation}')

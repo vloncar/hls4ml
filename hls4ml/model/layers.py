@@ -56,7 +56,6 @@ class Layer:
         ConfigurableAttribute('trace', default=False),
         TypeAttribute('result'),
     ]
-    """"""
 
     @classproperty
     def expected_attributes(cls):
@@ -195,8 +194,10 @@ class Layer:
     def get_input_variable(self, input_name=None):
         if input_name is not None:
             return self.model.get_layer_output_variable(input_name)
-        else:
+        elif len(self.inputs) > 0:
             return self.model.get_layer_output_variable(self.inputs[0])
+        else:
+            return None
 
     def get_output_use_map(self):
         output_map = {}
@@ -1307,6 +1308,65 @@ class LayerGroup(Layer):
         self.add_output_variable(shape, dims)
 
 
+class GetItem(Layer):
+    _expected_attributes = [
+        Attribute('item_index'),
+    ]
+
+    def initialize(self):
+        shape = self.get_input_variable().shape[1:]
+        dims = [f'N_INPUT_{self.index}_{i+1}' for i in range(len(shape))]
+
+        self.add_output_variable(shape, dims)
+
+
+class Gather(Layer):
+    def initialize(self):
+        tensor_shape = self.get_input_variable(self.inputs[0]).shape
+        index_shape = self.get_input_variable(self.inputs[1]).shape
+        output_shape = tensor_shape[:]
+        output_shape[0] = index_shape[-1]
+        dims = [f'N_INPUT_{self.index}_{i+1}' for i in range(len(output_shape) - 1)]
+        dims.append(f'N_INDEX_{self.index}')
+
+        self.add_output_variable(output_shape, dims)
+
+
+class Scatter(Layer):
+    _expected_attributes = [
+        Attribute('tensor_shape', value_type=list),
+        Attribute('dim', default=-1),
+        Attribute('init_output', value_type=bool, default=True),
+        ChoiceAttribute('scatter_op', choices=['sum', 'max', 'min', 'mean', 'mul']),
+    ]
+
+    def initialize(self):
+        tensor_shape = self.get_attr('tensor_shape', None)
+        if tensor_shape is None or len(tensor_shape) == 0:
+            tensor_shape = self.get_input_variable().shape
+        output_shape = tensor_shape[:]
+        dims = [f'N_INPUT_{self.index}_{i+1}' for i in range(len(output_shape))]
+
+        self.add_output_variable(output_shape, dims)
+
+
+class FillTensor(Layer):
+    _expected_attributes = [
+        Attribute('tensor_shape', value_type=list),
+        ChoiceAttribute('fill_op', choices=['zeros', 'ones']),  # TODO add linspace, arange and strided.
+    ]
+
+    def initialize(self):
+        # self.inputs = []
+        tensor_shape = self.get_attr('tensor_shape', None)
+        if tensor_shape is None or len(tensor_shape) == 0:
+            tensor_shape = self.get_input_variable().shape
+        output_shape = tensor_shape[:]
+        dims = [f'N_INPUT_{self.index}_{i+1}' for i in range(len(output_shape))]
+
+        self.add_output_variable(output_shape, dims)
+
+
 layer_map = {
     'Input': Input,
     'InputLayer': Input,
@@ -1331,8 +1391,10 @@ layer_map = {
     'QConv2D': Conv2D,
     'QConv2DBatchnorm': Conv2DBatchnorm,
     'SeparableConv1D': SeparableConv1D,
+    'QSeparableConv1D': SeparableConv1D,
     'DepthwiseConv1D': DepthwiseConv1D,
     'SeparableConv2D': SeparableConv2D,
+    'QSeparableConv2D': SeparableConv2D,
     'DepthwiseConv2D': DepthwiseConv2D,
     'QDepthwiseConv2D': DepthwiseConv2D,
     'BatchNormalization': BatchNormalization,
@@ -1361,6 +1423,10 @@ layer_map = {
     'GarNet': GarNet,
     'GarNetStack': GarNetStack,
     'LayerGroup': LayerGroup,
+    'GetItem': GetItem,
+    'Gather': Gather,
+    'Scatter': Scatter,
+    'FillTensor': FillTensor,
     # TensorFlow-specific layers:
     'BiasAdd': BiasAdd,
 }

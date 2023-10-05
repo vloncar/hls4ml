@@ -503,7 +503,9 @@ class ModelGraph:
                 next_nodes.append(x)
 
         if before is None:
-            next_node = next((x for x in self.graph.values() if x.inputs[0] in prev_node.outputs), None)
+            next_node = next(
+                (x for x in self.graph.values() if len(x.inputs) > 0 and x.inputs[0] in prev_node.outputs), None
+            )
         else:
             if before not in next_nodes:
                 raise Exception(
@@ -574,7 +576,7 @@ class ModelGraph:
 
         """
         prev_node = self.graph.get(old_node.inputs[0])
-        next_node = next((x for x in self.graph.values() if x.inputs[0] == old_node.outputs[0]), None)
+        next_node = next((x for x in self.graph.values() if len(x.inputs) > 0 and x.inputs[0] == old_node.outputs[0]), None)
         if next_node is not None:
             next_node.inputs[0] = new_node.outputs[0]
         if prev_node is not None:

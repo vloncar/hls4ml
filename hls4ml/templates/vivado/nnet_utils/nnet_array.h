@@ -47,6 +47,19 @@ void transpose_3d(data_T data[CONFIG_T::depth * CONFIG_T::height * CONFIG_T::wid
     }
 }
 
+struct fill_config {
+    static const unsigned n_in = 10;
+    static const unsigned fill_value = 0;
+};
+
+template <class data_T, typename CONFIG_T> void fill_tensor(data_T data[CONFIG_T::n_in]) {
+    #pragma HLS PIPELINE
+
+    for (int i = 0; i < CONFIG_T::n_in; i++) {
+        data[i] = (data_T)CONFIG_T::fill_value;
+    }
+}
+
 } // namespace nnet
 
 #endif
