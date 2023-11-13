@@ -69,7 +69,7 @@ If you use this software in a publication, please cite the software
   title        = {fastmachinelearning/hls4ml},
   year         = 2023,
   publisher    = {Zenodo},
-  version      = {v0.7.1},
+  version      = {v0.8.0rc1},
   doi          = {10.5281/zenodo.1201549},
   url          = {https://github.com/fastmachinelearning/hls4ml}
 }
@@ -135,3 +135,8 @@ binary/ternary networks:
     year = "2021"
 }
 ```
+
+# Acknowledgments
+If you benefited from participating in our community, we ask that you please acknowledge the Fast Machine Learning collaboration, and particular individuals who helped you, in any publications.
+Please use the following text for this acknowledgment:
+  > We acknowledge the Fast Machine Learning collective as an open community of multi-domain experts and collaborators. This community and \<names of individuals\>, in particular, were important for the development of this project.
