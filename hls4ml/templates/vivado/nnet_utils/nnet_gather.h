@@ -22,7 +22,7 @@ template <class data_T, typename CONFIG_T> void getitem(data_T input[CONFIG_T::n
     }
 }
 
-struct gather_config_1d {
+struct gather_1d_config {
     static const unsigned n_in = 20;
     static const unsigned n_indices = 10;
 };

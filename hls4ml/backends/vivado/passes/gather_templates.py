@@ -41,20 +41,20 @@ class GetItemFunctionTemplate(FunctionCallTemplate):
 
 # Gather templates
 
-gather_1d_config_template = """struct config{index} : nnet::gather_config_1d {{
+gather_1d_config_template = """struct config{index} : nnet::gather_1d_config {{
     static const unsigned n_in = {n_in};
     static const unsigned n_indices = {n_indices};
     static const unsigned n_out = n_indices;
 }};\n"""
 
-gather_2d_config_template = """struct config{index} : nnet::gather_config_2d {{
+gather_2d_config_template = """struct config{index} : nnet::gather_2d_config {{
     static const unsigned n_in_0 = {n_in_0};
     static const unsigned n_in_1 = {n_in_1};
     static const unsigned n_indices = {n_indices};
 }};\n"""
 
 
-gather_3d_config_template = """struct config{index} : nnet::gather_config_3d {{
+gather_3d_config_template = """struct config{index} : nnet::gather_3d_config {{
     static const unsigned n_in_0 = {n_in_0};
     static const unsigned n_in_1 = {n_in_1};
     static const unsigned n_in_2 = {n_in_2};
