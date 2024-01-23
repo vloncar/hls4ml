@@ -365,6 +365,106 @@ ConcatLoop2:
     }
     res.write(out_data);
 }
+
+template <class data_T, class res_T, typename CONFIG_T>
+void merge_bcast_0(hls::stream<data_T> &data, hls::stream<res_T> &res) {
+    // Note that this is really inefficient
+    res_T data_cpy[CONFIG_T::n_elem1_1];
+DataCpyLoop1:
+    for (int j = 0; j < CONFIG_T::n_elem1_1; j++) {
+        #pragma HLS PIPELINE II = 1
+
+        data_T in_data = data.read();
+        res_T out_data;
+
+    DataCpyLoop2:
+        for (int k = 0; k < data_T::size; k++) {
+            #pragma HLS UNROLL
+            out_data[k] = in_data[k];
+        }
+
+        data_cpy[j] = out_data;
+    }
+
+MergeBcastLoopBcast:
+    for (int i = 0; i < CONFIG_T::n_elem2_0; i++) {
+    MergeBcastLoop1:
+        for (int j = 0; j < CONFIG_T::n_elem1_1; j++) {
+            #pragma HLS PIPELINE II = 1
+
+            data_T in_data = data_cpy[j];
+            res_T out_data;
+            PRAGMA_DATA_PACK(out_data)
+
+        MergeBcastLoop2:
+            for (int k = 0; k < data_T::size; k++) {
+                #pragma HLS UNROLL
+                out_data[k] = in_data[k];
+            }
+
+            res.write(out_data);
+        }
+    }
+}
+
+template <class data_T, class res_T, typename CONFIG_T>
+void merge_bcast_1(hls::stream<data_T> &data, hls::stream<res_T> &res) {
+MergeBcastLoop0:
+    for (int i = 0; i < CONFIG_T::n_elem1_0; i++) {
+        data_T in_data = data.read();
+
+    MergeBcastLoopBcast:
+        for (int k = 0; k < CONFIG_T::n_elem2_1; k++) {
+            #pragma HLS PIPELINE II = 1
+
+            res_T out_data;
+            PRAGMA_DATA_PACK(out_data)
+
+        MergeBcastLoop2:
+            for (int k = 0; k < data_T::size; k++) {
+                #pragma HLS UNROLL
+                out_data[k] = in_data[k];
+            }
+
+            res.write(out_data);
+        }
+    }
+}
+
+template <class data_T, class res_T, typename CONFIG_T>
+void merge_bcast_2(hls::stream<data_T> &data, hls::stream<res_T> &res) {
+MergeBcastLoop0:
+    for (int i = 0; i < CONFIG_T::n_elem1_0; i++) {
+    MergeBcastLoop1:
+        for (int j = 0; j < CONFIG_T::n_elem1_1; j++) {
+            #pragma HLS PIPELINE II = 1
+
+            data_T in_data = data.read();
+            res_T out_data;
+            PRAGMA_DATA_PACK(out_data)
+
+        MergeBcastLoopBcast:
+            for (int k = 0; k < res_T::size; k++) {
+                #pragma HLS UNROLL
+                out_data[k] = in_data[0];
+            }
+
+            res.write(out_data);
+        }
+    }
+}
+
+template <class data_T, class res_T, typename CONFIG_T>
+void merge_bcast(hls::stream<data_T> &data, hls::stream<res_T> &res) {
+    if (CONFIG_T::axis == 2) {
+        merge_bcast_2<data_T, res_T, CONFIG_T>(data, res);
+    } else if (CONFIG_T::axis == 1) {
+        merge_bcast_1<data_T, res_T, CONFIG_T>(data, res);
+    } else {
+        merge_bcast_0<data_T, res_T, CONFIG_T>(data, res);
+    }
+}
+
 } // namespace nnet
 
 #endif

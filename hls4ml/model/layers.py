@@ -862,13 +862,28 @@ class Merge(Layer):
         assert len(self.inputs) == 2
         inp1 = self.get_input_variable(self.inputs[0])
         inp2 = self.get_input_variable(self.inputs[1])
-        if np.prod(inp2.shape) > np.prod(inp1.shape):
-            shape = inp2.shape.copy()
-            dims = inp2.dim_names.copy()
+        if len(inp1.shape) > len(inp2.shape):
+            shape1 = inp1.shape
+            shape2 = inp2.shape
         else:
-            shape = inp1.shape.copy()
-            dims = inp1.dim_names.copy()
-        self.add_output_variable(shape, dims)
+            shape1 = inp2.shape
+            shape2 = inp1.shape
+        out_shape = list(shape1[: -len(shape2)])
+        for i, j in zip(shape1[-len(shape2) :], shape2):
+            if i == 1:
+                out_shape.append(j)
+            elif j == 1:
+                out_shape.append(i)
+            else:
+                out_shape.append(i)
+
+        rank = len(out_shape)
+        if rank > 1:
+            out_dims = [f'OUT_MERGE_{self.index}_{i}' for i in range(rank)]
+        else:
+            out_dims = [f'OUT_MERGE_{self.index}']
+
+        self.add_output_variable(out_shape, out_dims)
 
 
 class Dot(Merge):
@@ -895,7 +910,7 @@ class Concatenate(Merge):
         shape[axis] += inp2.shape[axis]
         rank = len(shape)
         if rank > 1:
-            dims = [f'OUT_CONCAT_{i}_{self.index}' for i in range(rank)]
+            dims = [f'OUT_CONCAT_{self.index}_{i}' for i in range(rank)]
         else:
             dims = [f'OUT_CONCAT_{self.index}']
         self.add_output_variable(shape, dims)
