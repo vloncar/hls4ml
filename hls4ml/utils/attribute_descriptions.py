@@ -9,7 +9,7 @@ reuse_factor = (
 )
 
 index = 'Internal node counter used for bookkeeping and variable/tensor naming.'
-trace = 'Enables saving of layer output (tracing) when using hls_model.predict(...).'
+trace = 'Enables saving of layer output (tracing) when using hls_model.predict(...) or hls_model.trace(...)'
 
 result_type = 'The datatype (precision) of the output tensor.'
 accum_type = 'The datatype (precision) used to store intermediate results of the computation within the layer.'
@@ -40,7 +40,7 @@ conv_pf = (
 )
 conv_implementation = (
     '"LineBuffer" implementation is preferred over "Encoded" for most use cases. '
-    'This attribute is only supported in io_stream.'
+    'This attribute only applies to io_stream.'
 )
 
 # Recurrent-related attributes
