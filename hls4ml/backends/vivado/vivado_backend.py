@@ -334,7 +334,13 @@ class VivadoBackend(FPGABackend):
     def init_dense(self, layer):
         index_t = IntegerPrecisionType(width=1, signed=False)
         compression = layer.model.config.get_compression(layer)
-        if layer.model.config.is_resource_strategy(layer):
+        if layer.model.config.get_strategy(layer).lower() == 'resource_op':
+            # Experimental outer-product resource kernel: same reuse_factor semantics as 'resource'.
+            n_in, n_out = self.get_layer_mult_size(layer)
+            self.set_target_reuse_factor(layer)
+            self.set_closest_reuse_factor(layer, n_in, n_out)
+            layer.set_attr('strategy', 'resource_op')
+        elif layer.model.config.is_resource_strategy(layer):
             n_in, n_out = self.get_layer_mult_size(layer)
             self.set_target_reuse_factor(layer)
             self.set_closest_reuse_factor(layer, n_in, n_out)

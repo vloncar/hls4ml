@@ -15,6 +15,12 @@ class SetPipelineStyle(ModelOptimizerPass):
             self._set_pipeline_style(model, 'auto')
 
         if model.config.pipeline_style is None or model.config.pipeline_style == 'auto':
+            # A fused region overlaps its layers as concurrent dataflow processes connected by FIFOs.
+            # io_parallel would otherwise select PIPELINE, which inlines the whole chain and destroys
+            # the overlap the fusion exists for -- so this check must come first.
+            if self._maybe_set_dataflow_fused_region(model):
+                return True
+
             if self._maybe_set_dataflow_io_stream(model):
                 return True
 
@@ -41,6 +47,14 @@ class SetPipelineStyle(ModelOptimizerPass):
         # Could add logging here
         model.config.pipeline_style = pipeline_style
 
+    def _maybe_set_dataflow_fused_region(self, model):
+        for layer in model.get_layers():
+            if layer.get_attr('weave_form') in ('dot', 'axpy'):
+                self._set_pipeline_style(model, 'dataflow')
+                return True
+
+        return False
+
     def _maybe_set_dataflow_io_stream(self, model):
         if model.config.get_config_value('IOType') == 'io_stream':
             self._set_pipeline_style(model, 'dataflow')
@@ -59,7 +73,7 @@ class SetPipelineStyle(ModelOptimizerPass):
 
     def _maybe_set_dataflow_resource_strategy(self, model):
         for layer in model.get_layers():
-            if model.config.is_resource_strategy(layer) or model.config.get_strategy(layer).lower() == 'resource_op':
+            if model.config.is_resource_strategy(layer):
                 self._set_pipeline_style(model, 'dataflow')
                 return True
 

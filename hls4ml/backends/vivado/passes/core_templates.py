@@ -38,7 +38,12 @@ dense_config_template = """struct config{index} : nnet::dense_config {{
 
 dense_function_template = 'nnet::dense<{input_t}, {output_t}, {config}>({input}, {output}, {w}, {b});'
 
-dense_include_list = ['nnet_utils/nnet_dense.h', 'nnet_utils/nnet_dense_compressed.h', 'nnet_utils/nnet_dense_stream.h']
+dense_include_list = [
+    'nnet_utils/nnet_dense.h',
+    'nnet_utils/nnet_dense_compressed.h',
+    'nnet_utils/nnet_dense_stream.h',
+    'nnet_utils/nnet_dense_op.h',
+]
 
 
 class DenseConfigTemplate(LayerConfigTemplate):
@@ -58,6 +63,11 @@ class DenseConfigTemplate(LayerConfigTemplate):
 
         if node.get_attr('strategy').lower() == 'latency':
             params['dense_function'] = 'nnet::DenseLatency'
+        elif node.get_attr('strategy').lower() == 'resource_op':
+            # Outer-product resource kernel (experimental alternative to DenseResource). See nnet_dense_op.h.
+            # The kernel is selected via the `kernel` typedef; emit a valid strategy enum (resource) for the struct.
+            params['dense_function'] = 'nnet::DenseOp'
+            params['strategy'] = 'resource'
         elif node.get_attr('strategy').lower() == 'resource':
             if int(params['reuse_factor']) <= int(params['n_in']):
                 params['dense_function'] = 'nnet::DenseResource_rf_leq_nin'
