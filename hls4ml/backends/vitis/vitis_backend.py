@@ -34,6 +34,10 @@ class VitisBackend(VivadoBackend):
         ]
         validation_flow = register_flow('validation', validation_passes, requires=['vivado:init_layers'], backend=self.name)
 
+        fused_types_flow = register_flow(
+            'fused_types', ['vitis:transform_fused_types'], requires=['vivado:specific_types'], backend=self.name
+        )
+
         # Any potential templates registered specifically for Vitis backend
         template_flow = register_flow(
             'apply_templates', self._get_layer_templates, requires=['vivado:init_layers'], backend=self.name
@@ -44,6 +48,7 @@ class VitisBackend(VivadoBackend):
 
         ip_flow_requirements = get_flow('vivado:ip').requires.copy()
         ip_flow_requirements.insert(ip_flow_requirements.index('vivado:init_layers'), validation_flow)
+        ip_flow_requirements.insert(ip_flow_requirements.index('vivado:specific_types') + 1, fused_types_flow)
         ip_flow_requirements.insert(ip_flow_requirements.index('vivado:apply_templates'), template_flow)
 
         self._default_flow = register_flow('ip', None, requires=ip_flow_requirements, backend=self.name)
