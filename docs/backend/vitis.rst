@@ -9,3 +9,74 @@ backend can be easily incorporated into Vitis kernel.
 
 Users should generally use the **Vitis** backend for new designs that target AMD/Xilinx FPGAs; new ``hls4ml`` developments will not necessarily be backported to
 the **Vivado** backend.
+
+Fused strategy
+==============
+
+``Strategy: Fused`` is available in the **Vitis** backend only. The remaining strategies determine how an individual layer is computed; this strategy determines
+how a sequence of ``Dense`` layers is computed as a whole. Such a sequence is placed in a single ``DATAFLOW`` region and its layers execute concurrently, rather
+than each layer completing before the next one begins.
+
+A ``Dense`` layer requires all of its input values before it can produce any output value, and can therefore transfer data one value at a time on one of its two
+sides, but not on both. Each layer of a chain is accordingly computed in one of two forms:
+
+* ``dot`` reads the complete input array and writes its outputs one value at a time;
+* ``axpy`` reads its input one value at a time and writes the complete output array.
+
+A ``dot`` layer followed by an ``axpy`` layer executes concurrently, as the second layer can begin processing as soon as the first produces its first output
+value. The connection between such a pair is emitted as an ``hls::stream`` carrying a single value, with the precision of the layer that writes it; models using
+a different precision per layer therefore require no additional configuration. The connection between an ``axpy`` layer and the ``dot`` layer that follows it
+remains an array, as the ``dot`` form requires the complete input. A chain containing an odd number of layers is given a leading layer computed in the
+conventional form, so that the region as a whole reads an array and writes an array and can be placed among layers of any other type.
+
+The reuse factor keeps its usual meaning: it is converted into the number of multipliers the kernel uses concurrently, ``n_in * n_out / ReuseFactor``, so that a
+given reuse factor requests approximately the same hardware as it does under the other strategies. The two layers of a streaming pair are assigned the lower of
+their two multiplier counts, as a pair is limited by its slower half.
+
+Requirements
+------------
+
+The strategy applies to a model when all of the following hold.
+
+* **The Vitis backend.** The strategy is not available in the **Vivado** backend or in backends derived from it, which report an error naming the layer and the
+  backend rather than substituting a different strategy.
+* **io_parallel.** Under ``io_stream`` a single read of a stream carries an entire row, which the fused kernels cannot use.
+* **Two or more** ``Dense`` **layers in sequence**, each selecting the strategy, with the output of one read only by the next. A single layer, a layer whose
+  output is read by more than one layer, and any layer type other than ``Dense`` are computed as they would be under the other strategies.
+
+Two layer types are removed before the chain is identified and therefore do not interrupt a sequence of ``Dense`` layers:
+
+* **Elementwise activations**, which are computed in the output stage of the ``Dense`` layer that produces the value, after which the activation layer is
+  removed. The following are supported: ``relu``, ``sigmoid``, ``tanh``, ``selu``, ``softplus``, ``softsign``, ``binary_tanh``, ``ternary_tanh``, ``leaky_relu``,
+  ``thresholded_relu``, ``elu``, ``hard_sigmoid`` and ``hard_tanh``. A ``linear`` activation is removed by ``hls4ml`` at an earlier stage and never reaches the
+  strategy.
+* ``BatchNormalization`` **immediately following a** ``Dense`` **layer**, which ``hls4ml`` merges into the weights and bias of that layer before any backend
+  processing. This includes ``ApplyAlpha``, the scaling layer introduced by QKeras models, provided the conditions for the merge are satisfied.
+
+Limitations
+-----------
+
+The following terminate a chain. The ``Dense`` layers on either side are treated as separate chains, and are fused only where each side satisfies the
+requirements above.
+
+* ``Softmax``, which requires every output of a layer before it can produce any and therefore cannot be computed value by value.
+* ``PReLU``, which is elementwise but holds one parameter per output, stored as weights of the activation layer.
+* ``BatchNormalization`` that has not been merged. This occurs when it does not immediately follow a ``Dense`` layer, when the output type of the ``Dense``
+  layer is specified, or when the weights of both layers are quantized. The most common case is a scaling layer placed after the activation rather than before
+  it.
+* Any other layer type, and any point at which a second layer reads the same output, as a value written to a stream can be read only once.
+
+The reduction in latency is obtained from the overlap between consecutive layers. It is therefore largest for long chains whose individual layers are small
+enough that the computation of a single layer does not dominate the latency of the model.
+
+Configuration
+-------------
+
+The strategy is selected per layer and takes effect wherever two or more ``Dense`` layers selecting it are in sequence:
+
+.. code-block:: python
+
+   config = hls4ml.utils.config_from_keras_model(model, granularity='name', backend='Vitis')
+   for layer in ['fc1', 'fc2', 'fc3']:
+       config['LayerName'][layer]['Strategy'] = 'Fused'
+       config['LayerName'][layer]['ReuseFactor'] = 4
