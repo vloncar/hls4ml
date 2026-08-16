@@ -1,7 +1,10 @@
+from copy import copy
+
 import numpy as np
 
 from hls4ml.model.layers import Activation, Dense, HardActivation, ParametrizedActivation, PReLU
 from hls4ml.model.optimizer import ModelOptimizerPass, OptimizerPass
+from hls4ml.model.types import NamedType
 
 # Activations a Dense kernel can compute on the value it has just produced, grouped by what else the
 # kernel needs. softmax is absent by nature: it needs every output of the layer before producing any.
@@ -57,8 +60,8 @@ def _foldable_activation(node):
         name = node._get_act_function_name().lower()
         return name if name in SCALAR_PARAM_ACTIVATIONS else None
 
-    # PReLU keeps one number per output, stored as weights of the activation layer. Foldable in
-    # principle, but the numbers would have to move to the Dense layer. Left for later.
+    # PReLU is foldable in principle, but its numbers are weights of the activation layer and would
+    # have to move to the Dense layer. Left for later.
     if cls is PReLU:
         return None
 
@@ -85,15 +88,34 @@ class FoldActivationIntoFused(OptimizerPass):
         activation = _foldable_activation(node)
         prev.set_attr('fused_activation', activation)
 
-        if activation in TABLE_ACTIVATIONS and node.get_attr('table_size') is not None:
-            prev.set_attr('fused_table_size', node.get_attr('table_size'))
+        # The Dense layer takes over the rounding the activation layer did, so the chain carries the
+        # same types as it would without the fold. preact_t is what the activation is computed on.
+        out_var = prev.get_output_variable()
+        prev.set_attr('fused_preact_t', NamedType(f'{prev.name}_preact_t', copy(out_var.type.precision)))
+        out_var.type.precision = copy(node.get_output_variable().type.precision)
 
+        if activation in TABLE_ACTIVATIONS:
+            if node.get_attr('table_size') is not None:
+                prev.set_attr('fused_table_size', node.get_attr('table_size'))
+            # Set on the Dense layer, the type is also declared: the types of a layer are the
+            # attributes that hold one.
+            if node.get_attr('table_t') is not None:
+                prev.set_attr('fused_table_t', node.get_attr('table_t'))
+
+        # Each number keeps the type hls4ml gave it; the three are not the same, and rounding one of
+        # them to a different type changes the result.
         if activation in SCALAR_PARAM_ACTIVATIONS:
             prev.set_attr('fused_activation_param', node.get_attr('activ_param', 1.0))
+            if node.get_attr('param_t') is not None:
+                prev.set_attr('fused_param_t', node.get_attr('param_t'))
 
         if activation in HARD_ACTIVATIONS:
             prev.set_attr('fused_activation_slope', node.get_attr('slope', 0.2))
             prev.set_attr('fused_activation_shift', node.get_attr('shift', 0.5))
+            if node.get_attr('slope_t') is not None:
+                prev.set_attr('fused_slope_t', node.get_attr('slope_t'))
+            if node.get_attr('shift_t') is not None:
+                prev.set_attr('fused_shift_t', node.get_attr('shift_t'))
 
         model.remove_node(node)
         return True

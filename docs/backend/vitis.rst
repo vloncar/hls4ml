@@ -17,6 +17,20 @@ Fused strategy
 how a sequence of ``Dense`` layers is computed as a whole. Such a sequence is placed in a single ``DATAFLOW`` region and its layers execute concurrently, rather
 than each layer completing before the next one begins.
 
+Intended operating region
+-------------------------
+
+The strategy addresses designs that use a reuse factor greater than one, in which each layer is computed over several cycles and the layers of a model would
+otherwise run one after another. It reduces the latency of the model by overlapping consecutive layers, at a resource cost well below that of unrolling them.
+
+It is not intended for ``ReuseFactor = 1``. Fully unrolled constant-matrix multiplication is already served by the ``Latency`` strategy and, more efficiently,
+by ``Strategy: distributed_arithmetic`` (see :doc:`Distributed Arithmetic <../advanced/da>`) together with the quantisation-aware flows built around it. A
+``dot`` layer uses at most ``n_in`` multipliers and an ``axpy`` layer at most ``n_out``, so the strategy cannot reach the parallelism those paths provide, and
+requesting it is reported during conversion.
+
+It also does not extend to models too large for ``io_parallel``, which require ``io_stream`` and are outside its scope for the reason given under
+`Requirements`_.
+
 A ``Dense`` layer requires all of its input values before it can produce any output value, and can therefore transfer data one value at a time on one of its two
 sides, but not on both. Each layer of a chain is accordingly computed in one of two forms:
 
@@ -29,9 +43,12 @@ a different precision per layer therefore require no additional configuration. T
 remains an array, as the ``dot`` form requires the complete input. A chain containing an odd number of layers is given a leading layer computed in the
 conventional form, so that the region as a whole reads an array and writes an array and can be placed among layers of any other type.
 
-The reuse factor keeps its usual meaning: it is converted into the number of multipliers the kernel uses concurrently, ``n_in * n_out / ReuseFactor``, so that a
-given reuse factor requests approximately the same hardware as it does under the other strategies. The two layers of a streaming pair are assigned the lower of
-their two multiplier counts, as a pair is limited by its slower half.
+The reuse factor keeps its usual meaning and is the only setting: it is converted into ``multiplier_limit``, the number of multipliers the kernel uses
+concurrently, as ``n_in * n_out / ReuseFactor``. The two layers of a streaming pair are assigned the lower of their two counts, as a pair is limited by its
+slower half.
+
+A ``dot`` layer uses at most ``n_in`` multipliers and an ``axpy`` layer at most ``n_out``, so reuse factors below that point all produce the same design. A
+reuse factor that cannot be honoured is reported during conversion, together with the one that is built.
 
 Requirements
 ------------

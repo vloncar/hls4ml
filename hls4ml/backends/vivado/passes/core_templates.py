@@ -69,19 +69,12 @@ class DenseConfigTemplate(LayerConfigTemplate):
         elif node.get_attr('strategy').lower() == 'distributed_arithmetic':
             # Only triggered in io_streaming mode
             params['dense_function'] = f'{namespace}::dense_da_wrapper_{node.index}'
-        elif node.get_attr('strategy').lower() == 'fused':
-            # The backend providing the fused strategy registers its own template; reaching here means
-            # that template is missing
-            raise Exception(
-                f'Layer {node.name} has strategy = "fused", but no template for it is registered. '
-                'The backend that accepts this strategy has to provide one.'
-            )
 
         return self.template.format(**params)
 
     def match(self, node):
-        if node.get_attr('strategy') == 'distributed_arithmetic':
-            return False  # DA does not use common dense template
+        if node.get_attr('strategy') in ('distributed_arithmetic', 'fused'):
+            return False  # these have kernels and templates of their own
         return super().match(node)
 
 
@@ -98,8 +91,8 @@ class DenseFunctionTemplate(FunctionCallTemplate):
         return self.template.format(**params)
 
     def match(self, node):
-        if node.get_attr('strategy') == 'distributed_arithmetic':
-            return False  # DA does not use common dense template
+        if node.get_attr('strategy') in ('distributed_arithmetic', 'fused'):
+            return False  # these have kernels and templates of their own
         return super().match(node)
 
 

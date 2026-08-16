@@ -108,3 +108,31 @@ class ValidateStdCppTypes(OptimizerPass):
                 f'WARNING: Layer "{node.name}" uses C++ types that are not synthesizable with Vitis backend. '
                 'Use only for testing purposes.'
             )
+
+
+class ValidateFusedReuseFactor(OptimizerPass):
+    """Report a reuse factor the fused strategy cannot honour.
+
+    A dot layer uses at most n_in multipliers and an axpy layer at most n_out, and the two layers of a
+    pair are levelled to the lower of the two. A reuse factor below that point therefore builds the same
+    design as the point itself, which is reported rather than left to be discovered from the numbers.
+    """
+
+    def match(self, node):
+        built = node.get_attr('fused_multipliers')
+        if built is None:
+            return False
+        n_in, n_out = int(node.get_attr('n_in')), int(node.get_attr('n_out'))
+        asked = max(1, int(node.get_attr('reuse_factor', 1) or 1))
+        return n_in * n_out // built > asked
+
+    def transform(self, model, node):
+        n_in, n_out = int(node.get_attr('n_in')), int(node.get_attr('n_out'))
+        built = int(node.get_attr('fused_multipliers'))
+        asked = max(1, int(node.get_attr('reuse_factor', 1) or 1))
+        print(
+            f'WARNING: Layer "{node.name}" ({node.class_name}) asks for reuse factor {asked} with strategy '
+            f'"fused", which cannot be built: the {node.get_attr("fused_form")} form uses at most '
+            f'{built} multipliers at a time. The layer is built with {built}, which is reuse factor '
+            f'{n_in * n_out // built}.'
+        )

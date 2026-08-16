@@ -39,6 +39,7 @@ class VitisBackend(VivadoBackend):
             'vitis:fold_activation_into_fused',
             'vitis:plan_dense_fusion',
             'vitis:layout_fused_dot_weights',
+            'vitis:validate_fused_reuse_factor',
         ]
         fusion_flow = register_flow('fuse_dense', fusion_passes, requires=['vivado:init_layers'], backend=self.name)
 
