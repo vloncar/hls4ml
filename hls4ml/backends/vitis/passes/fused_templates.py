@@ -63,8 +63,7 @@ class DenseFusedConfigTemplate(LayerConfigTemplate):
         super().__init__(Dense)
         self.template = dense_fused_config_template
 
-    @staticmethod
-    def _type_name(node, attribute, default):
+    def _type_name(self, node, attribute, default):
         named_type = node.get_attr(attribute)
         return named_type.name if named_type is not None else default
 

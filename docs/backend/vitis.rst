@@ -57,9 +57,11 @@ The strategy applies to a model when all of the following hold.
 
 * **The Vitis backend.** The strategy is not available in the **Vivado** backend or in backends derived from it, which report an error naming the layer and the
   backend rather than substituting a different strategy.
-* **io_parallel.** Under ``io_stream`` a single read of a stream carries an entire row, which the fused kernels cannot use.
+* **io_parallel.** Under ``io_stream`` a single read of a stream carries an entire row, which the fused kernels cannot use; the combination is rejected during
+  conversion.
 * **Two or more** ``Dense`` **layers in sequence**, each selecting the strategy, with the output of one read only by the next. A single layer, a layer whose
-  output is read by more than one layer, and any layer type other than ``Dense`` are computed as they would be under the other strategies.
+  output is read by more than one layer, and any layer type other than ``Dense`` are computed as they would be under the other strategies. Selecting the
+  strategy on a layer type that does not implement it is reported, and that layer is built with the strategy it would otherwise have used.
 
 Two layer types are removed before the chain is identified and therefore do not interrupt a sequence of ``Dense`` layers:
 

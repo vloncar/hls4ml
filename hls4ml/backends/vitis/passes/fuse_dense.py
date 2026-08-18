@@ -161,8 +161,7 @@ class PlanDenseFusion(ModelOptimizerPass):
 
         return True
 
-    @staticmethod
-    def _assign_forms(length):
+    def _assign_forms(self, length):
         """Return the form of each layer of a chain of the given length."""
         if length < 2:
             return ['plain'] * length
@@ -190,8 +189,7 @@ class PlanDenseFusion(ModelOptimizerPass):
             runs.append(current)
         return [run for run in runs if len(run) > 1]
 
-    @staticmethod
-    def _lanes_dimension(layer):
+    def _lanes_dimension(self, layer):
         """The number of values the layer works through: n_in for dot, which adds up the inputs, n_out
         for the other forms, which produce the outputs."""
         if layer.get_attr('fused_form') == 'dot':
@@ -223,8 +221,7 @@ class PlanDenseFusion(ModelOptimizerPass):
                 for n in pair:
                     n.set_attr('fused_multipliers', shared)
 
-    @staticmethod
-    def _mark_streamed_outputs(layers):
+    def _mark_streamed_outputs(self, layers):
         """Mark the outputs written one value at a time, which TransformTypes turns into streams.
 
         Only a dot layer read by an axpy layer writes that way.
